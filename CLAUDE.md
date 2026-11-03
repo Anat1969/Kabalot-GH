@@ -26,3 +26,6 @@
 ## כתובות
 - GitHub: https://github.com/Anat1969/Kabalot-GH
 - Vercel: https://kabalot-gh.vercel.app
+
+## יומן
+- 03.11.2026, Claude (לבקשת ענת): בנייה ראשונה. פרויקט Vercel `kabalot-gh` נוצר ומחובר ל-main.
