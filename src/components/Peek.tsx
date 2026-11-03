@@ -21,6 +21,7 @@ export default function Peek({ r, go }: { r: Receipt; go: (h: string) => void })
           <div><dt>אחריות עד</dt><dd className="num">{fmtDate(war, true) || '—'}</dd></div>
         </dl>
         {r.notes && <p className="notes">{r.notes}</p>}
+        {r.link && <a className="btn press linkbtn" href={r.link} target="_blank" rel="noreferrer"><Icon d={I.link} /> הקבלה הדיגיטלית</a>}
         <div className="row2">
           <button className="btn primary press" onClick={() => go(`#/show/${r.id}`)}><Icon d={I.show} /> הצגה למוכרת</button>
           <button className="btn press" onClick={() => go(`#/r/${r.id}`)}><Icon d={I.edit} /> עריכה</button>

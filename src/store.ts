@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { allReceipts, persist, putFile, putReceipt, uid } from './db';
 import { prepare } from './files';
 import { readText } from './ocr';
-import { parseReceipt } from './parse';
+import { parseMessage, parseReceipt } from './parse';
+import { messageImage } from './files';
 import { guessCategory } from './categories';
 import { todayISO } from './dates';
 import type { Receipt } from './types';
@@ -52,14 +53,14 @@ export async function addFiles(files: Blob[], names: string[] = []): Promise<str
   return ids;
 }
 
-async function readInto(id: string, image: Blob) {
+async function readInto(id: string, image: Blob, keep = '') {
   try {
     const text = await readText(image);
     const parsed = parseReceipt(text);
     const cur = (await allReceipts()).find((x) => x.id === id);
     if (!cur) return;
     const fresh = cur.updatedAt === cur.createdAt; // nothing typed yet
-    const next: Receipt = { ...cur, ocrText: text, auto: { ...cur.auto } };
+    const next: Receipt = { ...cur, ocrText: keep ? keep + '\n' + text : text, auto: { ...cur.auto } };
     if (parsed.store && !cur.store) { next.store = parsed.store; next.auto.store = true; }
     if (parsed.amount != null && cur.amount == null) { next.amount = parsed.amount; next.auto.amount = true; }
     if (parsed.date && (fresh || !cur.date || cur.date === todayISO())) { next.date = parsed.date; next.auto.date = true; }
@@ -71,4 +72,35 @@ async function readInto(id: string, image: Blob) {
     reading.delete(id);
     notify();
   }
+}
+
+/** A receipt that arrived as a text message: the text itself is the receipt, plus its link. */
+export async function addMessage(text: string): Promise<string> {
+  persist();
+  const p = parseMessage(text);
+  const img = await messageImage(text, p.store);
+  const fileId = uid();
+  await putFile({ id: fileId, original: img.display, display: img.display, name: 'הודעה' });
+  const r: Receipt = {
+    ...blankReceipt(), fileId, fileType: 'image/jpeg', thumb: img.thumb, ocrText: text, source: 'message', link: p.link,
+    store: p.store ?? '', amount: p.amount ?? null, date: p.date ?? todayISO(),
+    auto: { store: !!p.store, amount: p.amount != null, date: !!p.date },
+  };
+  r.category = guessCategory(text) ?? 'אחר';
+  await putReceipt(r);
+  notify();
+  return r.id;
+}
+
+/** Puts a photo or PDF on an existing receipt (for example a screenshot of the digital receipt). */
+export async function attachFile(r: Receipt, file: Blob) {
+  const p = await prepare(file);
+  const fileId = uid();
+  await putFile({ id: fileId, original: p.original, display: p.display, name: (file as File).name || 'קבלה' });
+  const { deleteFile } = await import('./db');
+  if (r.fileId) await deleteFile(r.fileId).catch(() => {});
+  await putReceipt({ ...r, fileId, fileType: p.original.type || 'image/jpeg', thumb: p.thumb, updatedAt: Date.now() });
+  notify();
+  reading.add(r.id);
+  void readInto(r.id, p.ocrSource, r.ocrText);
 }

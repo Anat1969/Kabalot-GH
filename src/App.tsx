@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { addFiles, notify, useReceipts } from './store';
+import { addFiles, addMessage, notify, useReceipts } from './store';
 import { clearAll, deleteFile, deleteReceipt, takeInbox, allReceipts } from './db';
 import { exportBackup, importBackup } from './backup';
 import { loadDemo } from './demo';
@@ -51,7 +51,13 @@ export default function App() {
 
   // Photos shared from the gallery (Android share sheet -> sw.js -> IndexedDB inbox).
   useEffect(() => {
-    const pull = () => takeInbox().then((items) => { if (items.length) onFiles(items.map((i) => i.file), items.map((i) => i.name)); }).catch(() => {});
+    const pull = () => takeInbox().then(async (items) => {
+      const files = items.filter((i) => i.file);
+      const texts = items.filter((i) => i.text);
+      if (files.length) onFiles(files.map((i) => i.file!), files.map((i) => i.name));
+      for (const t of texts) { const id = await addMessage(t.text!); if (texts.length === 1 && !files.length) go(`#/r/${id}`); }
+      if (items.length) history.replaceState(null, '', location.pathname + location.hash);
+    }).catch(() => {});
     pull();
     const onMsg = (e: MessageEvent) => { if (e.data === 'kabalot:shared') pull(); };
     navigator.serviceWorker?.addEventListener('message', onMsg);
@@ -107,7 +113,7 @@ export default function App() {
 
       {list == null ? <div className="loading">טוען את הקבלות...</div>
         : route === 'r' ? (current ? <Editor key={current.id} r={current} go={go} onSave={setSave} /> : <div className="loading">הקבלה לא נמצאה. <a href="#/">לכל הקבלות</a></div>)
-        : <Home list={list} q={q} setQ={setQ} open={open} setOpen={setOpen} go={go} onFiles={onFiles} busy={busy} />}
+        : <Home list={list} q={q} setQ={setQ} open={open} setOpen={setOpen} go={go} onFiles={onFiles} busy={busy} onMessage={async (t) => { const id = await addMessage(t); go(`#/r/${id}`); }} />}
 
       {route === 'show' && current && <Show r={current} onClose={() => history.length > 1 ? history.back() : go('#/')} />}
       {toast && <div className="toast" role="status">{toast}</div>}

@@ -38,6 +38,7 @@ export default function Show({ r, onClose }: { r: Receipt; onClose: () => void }
         <button className="iconbtn big press" onClick={() => z(1 / 1.5)} disabled={zoom <= 1} aria-label="הקטנה" title="הקטנה"><Icon d={I.minus} /></button>
         <button className="iconbtn big press" onClick={() => setZoom(1)} aria-label="כל הקבלה" title="כל הקבלה"><Icon d={I.fit} /></button>
         <button className="iconbtn big press" onClick={() => z(1.5)} aria-label="הגדלה" title="הגדלה"><Icon d={I.plus} /></button>
+        {r.link && <a className="btn press" href={r.link} target="_blank" rel="noreferrer"><Icon d={I.link} /> הקבלה הדיגיטלית</a>}
         <button className="btn primary press" onClick={onClose}><Icon d={I.close} /> סגירה</button>
       </footer>
     </div>

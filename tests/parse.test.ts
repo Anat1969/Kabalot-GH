@@ -41,3 +41,27 @@ describe('status and search', () => {
     expect(sortList([base, b], 'amount', -1)[0].id).toBe('1');
   });
 });
+
+import { parseMessage } from '../src/parse';
+
+describe('reading a receipt from a text message', () => {
+  const now2 = new Date(2026, 10, 3);
+  it('store, amount and link from a typical SMS', () => {
+    const r = parseMessage('תודה שקנית בשופרסל! הקבלה הדיגיטלית שלך על סך 245.90 ש"ח זמינה כאן: https://e.shufersal.co.il/r/AB12cd', now2);
+    expect(r.store).toBe('שופרסל');
+    expect(r.amount).toBe(245.9);
+    expect(r.link).toBe('https://e.shufersal.co.il/r/AB12cd');
+  });
+  it('sender prefix and shekel sign before the number', () => {
+    const r = parseMessage('FOX: חשבונית מס/קבלה לרכישתך מ-01/11/2026 בסך ₪ 389 לצפייה https://invoice.example.com/x?id=9.', now2);
+    expect(r.store).toBe('FOX');
+    expect(r.amount).toBe(389);
+    expect(r.date).toBe('2026-11-01');
+    expect(r.link).toBe('https://invoice.example.com/x?id=9');
+  });
+  it('charge message without a link', () => {
+    const r = parseMessage('בוצעה עסקה בכרטיסך המסתיים ב-1234 ברשת איקאה בסך 1,299.00 ש"ח', now2);
+    expect(r.amount).toBe(1299);
+    expect(r.link).toBeUndefined();
+  });
+});

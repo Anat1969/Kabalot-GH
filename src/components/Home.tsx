@@ -6,20 +6,22 @@ import { reading } from '../store';
 import { loadDemo } from '../demo';
 import StatusTag from './Status';
 import Peek from './Peek';
+import MessageBox from './MessageBox';
 import type { Receipt } from '../types';
 
 interface Prefs { view: 'cards' | 'table'; group: GroupKey; sort: SortKey; dir: 1 | -1; status: StatusFilter }
 const DEFAULT: Prefs = { view: 'cards', group: 'category', sort: 'date', dir: -1, status: 'all' };
 const loadPrefs = (): Prefs => { try { return { ...DEFAULT, ...JSON.parse(localStorage.getItem('kabalot.prefs') || '{}') }; } catch { return DEFAULT; } };
 
-interface Props { list: Receipt[]; q: string; setQ: (q: string) => void; open: string | null; setOpen: (id: string | null) => void; go: (h: string) => void; onFiles: (f: FileList | null) => void; busy: boolean }
+interface Props { list: Receipt[]; q: string; setQ: (q: string) => void; open: string | null; setOpen: (id: string | null) => void; go: (h: string) => void; onFiles: (f: FileList | null) => void; busy: boolean; onMessage: (text: string) => Promise<void> }
 
-export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy }: Props) {
+export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy, onMessage }: Props) {
   const [p, setP] = useState<Prefs>(loadPrefs);
   const set = (patch: Partial<Prefs>) => setP((old) => { const n = { ...old, ...patch }; try { localStorage.setItem('kabalot.prefs', JSON.stringify(n)); } catch { /* ok */ } return n; });
   const camRef = useRef<HTMLInputElement>(null);
   const galRef = useRef<HTMLInputElement>(null);
   const today = todayISO();
+  const [msgOpen, setMsgOpen] = useState(false);
 
   const shown = useMemo(() => sortList(list.filter((r) => matches(r, q) && filterStatus(r, p.status, today)), p.sort, p.dir), [list, q, p, today]);
   const groups = useMemo(() => {
@@ -57,10 +59,12 @@ export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy }
             <p className="explain">מצלמים קבלה, כותבים מה נקנה, ומוצאים אותה לפי <b>שם החפץ</b>.</p>
           </>
         )}
-        <div className="row2 capture">
-          <button className="btn primary big press" onClick={() => camRef.current?.click()} disabled={busy}><Icon d={I.camera} size={22} /> {busy ? 'שומר...' : 'צילום קבלה'}</button>
-          <button className="btn big press" onClick={() => galRef.current?.click()} disabled={busy}><Icon d={I.gallery} size={22} /> מהגלריה או PDF</button>
+        <div className="row3 capture">
+          <button className="btn primary big press" onClick={() => camRef.current?.click()} disabled={busy}><Icon d={I.camera} size={22} /> <span>{busy ? 'שומר...' : 'צילום'}</span></button>
+          <button className="btn big press" onClick={() => galRef.current?.click()} disabled={busy}><Icon d={I.gallery} size={22} /> <span>גלריה או PDF</span></button>
+          <button className="btn big press" onClick={() => setMsgOpen(true)} disabled={busy}><Icon d={I.message} size={22} /> <span>מהודעה</span></button>
         </div>
+        {msgOpen && <MessageBox onClose={() => setMsgOpen(false)} onSave={async (t) => { await onMessage(t); setMsgOpen(false); }} />}
         <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { onFiles(e.target.files); e.target.value = ''; }} />
         <input ref={galRef} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => { onFiles(e.target.files); e.target.value = ''; }} data-testid="gallery-input" />
       </section>
@@ -68,7 +72,7 @@ export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy }
       {!list.length ? (
         <section className="empty">
           <ol className="steps">
-            <li><b>צילום</b> הקבלה, או שיתוף תמונה מהגלריה ישר לאפליקציה.</li>
+            <li><b>צילום</b> הקבלה, תמונה מהגלריה, או <b>הודעה</b> עם קבלה דיגיטלית.</li>
             <li><b>שם החפץ:</b> סכום, תאריך וחנות נקראים מהקבלה לבד.</li>
             <li><b>בחנות:</b> מחפשים את החפץ, ולוחצים "הצגה למוכרת".</li>
           </ol>

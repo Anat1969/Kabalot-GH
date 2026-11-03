@@ -83,6 +83,39 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) failed+
     await p.fill('input[type=search]', 'מטען');
     ok((await p.locator('.card').count()) === 1, `${name}: still there after reload`);
 
+    // a receipt that came as a text message: paste
+    await p.goto(base);
+    await p.click('.capture >> text=מהודעה');
+    await p.fill('textarea.msg', 'תודה שקנית בשופרסל! הקבלה הדיגיטלית שלך על סך 245.90 ש"ח זמינה כאן: https://e.shufersal.co.il/r/AB12cd');
+    ok((await p.locator('.readout').innerText()).includes('שופרסל'), `${name}: message read live: store`);
+    ok((await p.locator('.readout').innerText()).includes('245.9'), `${name}: message read live: amount`);
+    await p.screenshot({ path: `${shots}/${name}-6-message.png` });
+    await p.click('text=שמירת הקבלה');
+    await p.waitForSelector('.editor');
+    ok(await p.locator('a:has-text("פתיחת הקבלה הדיגיטלית")').isVisible(), `${name}: link to the digital receipt`);
+    ok((await p.locator('.ed-form input[inputmode=decimal]').inputValue()) === '245.9', `${name}: amount filled from the message`);
+    await p.fill('.ed-form input >> nth=0', 'קניות לשבת');
+    await p.waitForTimeout(600);
+    await p.screenshot({ path: `${shots}/${name}-7-message-editor.png` });
+    await p.click('text=סיום, לכל הקבלות');
+    await p.fill('input[type=search]', 'shufersal');
+    await p.waitForTimeout(200);
+    ok((await p.locator('.card').count()) === 1, `${name}: message receipt found by a word in its link`);
+    await p.fill('input[type=search]', '');
+
+    // a message shared from the messages app (Android share sheet -> service worker)
+    await p.evaluate(() => navigator.serviceWorker.ready);
+    if (!(await p.evaluate(() => !!navigator.serviceWorker.controller))) await p.reload();
+    await p.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 10000 });
+    await p.evaluate(async () => {
+      const f = new FormData();
+      f.append('text', 'FOX: חשבונית מס/קבלה לרכישתך בסך ₪ 389 לצפייה https://invoice.example.com/x?id=9');
+      await fetch(new URL('share', document.baseURI.replace(/#.*$/, '').replace(/[^/]*$/, '')), { method: 'POST', body: f });
+    });
+    await p.waitForSelector('.editor', { timeout: 10000 });
+    ok((await p.locator('.ed-form input[inputmode=decimal]').inputValue()) === '389', `${name}: shared message became a receipt`);
+    await p.goto(base);
+
     const sw = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     ok(sw <= 0, `${name}: no horizontal page scroll (${sw})`);
     ok(errors.length === 0, `${name}: no page errors ${errors.join(' | ')}`);

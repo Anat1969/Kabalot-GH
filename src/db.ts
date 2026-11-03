@@ -38,8 +38,9 @@ export const putFile = (f: StoredFile) => tx('files', 'readwrite', (s) => { s.pu
 export const deleteFile = (id: string) => tx('files', 'readwrite', (s) => { s.delete(id); });
 
 /** Files shared into the app from the phone gallery (written by sw.js). */
-export const takeInbox = async (): Promise<{ id: string; file: Blob; name: string }[]> => {
-  const items = await tx<{ id: string; file: Blob; name: string }[]>('inbox', 'readonly', (s) => s.getAll());
+export interface InboxItem { id: string; file?: Blob; text?: string; name: string }
+export const takeInbox = async (): Promise<InboxItem[]> => {
+  const items = await tx<InboxItem[]>('inbox', 'readonly', (s) => s.getAll());
   if (items.length) await tx('inbox', 'readwrite', (s) => { s.clear(); });
   return items;
 };

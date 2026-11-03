@@ -64,3 +64,51 @@ export function parseStore(text: string): string | undefined {
 export function parseReceipt(text: string, now = new Date()): Parsed {
   return { store: parseStore(text), date: parseDate(text, now), amount: parseAmount(text) };
 }
+
+/* ---------- Text messages (SMS / WhatsApp) with a digital receipt ---------- */
+
+export interface ParsedMessage extends Parsed { link?: string }
+
+const SHEKEL_AFTER = /(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\s*(?:₪|ש["״]?ח|שקלים|ils|nis)/gi;
+const SHEKEL_BEFORE = /(?:₪|ils|nis)\s*(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/gi;
+const AMOUNT_WORD = /(?:סה["״]?כ|סך(?:\s*הכו?ל)?|סכום(?:\s*העסקה|\s*החיוב)?|על\s*סך|בסך|לתשלום|חויב(?:ת)?(?:\s*ב)?|amount|total)\s*:?\s*(?:₪|ש["״]?ח)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/gi;
+
+export function parseMessageAmount(text: string): number | undefined {
+  const t = text.replace(/https?:\/\/\S+/g, ' ');
+  for (const re of [AMOUNT_WORD, SHEKEL_AFTER, SHEKEL_BEFORE]) {
+    const nums = [...t.matchAll(re)].map((m) => toNumber(m[1])).filter((n): n is number => n != null && n > 0 && n < 1_000_000);
+    if (nums.length) return Math.max(...nums);
+  }
+  return parseAmount(t);
+}
+
+export function parseLink(text: string): string | undefined {
+  const m = text.match(/https?:\/\/[^\s"'<>]+/i);
+  return m ? m[0].replace(/[.,;)\]]+$/, '') : undefined;
+}
+
+const STORE_PATTERNS = [
+  /(?:קנית|קנייה|קניה|רכישה|רכשת|ביקור|ביקורך|עסקה|עסקתך|החיוב)\s+(?:שלך\s+)?(?:ב|אצל\s+|ברשת\s+|בחנות\s+)([^\s,.:!\d][^,.:!\n\d]{1,28})/,
+  /(?:תודה\s+(?:שקנית|שבחרת|על\s+קנייתך|על\s+רכישתך)\s+(?:ב|אצל\s+))([^\s,.:!\d][^,.:!\n\d]{1,28})/,
+  /(?:מאת|from)\s*:?\s*([^\n,.:]{2,30})/i,
+  /^([^\n:]{2,30}):/,
+];
+
+export function parseMessageStore(text: string): string | undefined {
+  const t = text.replace(/https?:\/\/\S+/g, ' ');
+  for (const re of STORE_PATTERNS) {
+    const m = t.match(re);
+    if (m) {
+      const s = m[1].replace(/\s+(?:בסך|על|בתאריך|ב-?\d|היא|הינה|מצורפת|נשלחה|לצפייה|זמינה).*$/, '').trim();
+      if (s.length >= 2 && !/^(קבלה|חשבונית|הקבלה|החשבונית|שלום|לקוח)/.test(s)) return s.slice(0, 30);
+    }
+  }
+  return undefined;
+}
+
+export function parseMessage(text: string, now = new Date()): ParsedMessage {
+  return { store: parseMessageStore(text), date: parseDate(text.replace(/https?:\/\/\S+/g, ' '), now), amount: parseMessageAmount(text), link: parseLink(text) };
+}
+
+/** A pasted or shared message is a receipt when it has a link or a sum. */
+export const looksLikeMessage = (text: string) => !!(parseLink(text) || parseMessageAmount(text) != null);

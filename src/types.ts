@@ -18,6 +18,9 @@ export interface Receipt {
   thumb: string;
   /** Fields that were filled by reading the receipt and still need a look. */
   auto: Partial<Record<'item' | 'store' | 'date' | 'amount', boolean>>;
+  /** Link to the digital receipt, when it came in a text message. */
+  link?: string;
+  source?: 'photo' | 'message';
   demo?: boolean;
   createdAt: number;
   updatedAt: number;

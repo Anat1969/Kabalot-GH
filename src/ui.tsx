@@ -25,6 +25,9 @@ export const I = {
   file: 'M6 3h9l4 4v14H6zM14 3v5h5',
   back: 'M9 6l6 6l-6 6',
   x: 'M6 6l12 12M18 6L6 18',
+  paste: 'M9 4h6v3H9zM7 5H5v16h14V5h-2M9 12h6M9 16h4',
+  message: 'M4 5h16v11H9l-5 4zM8 9h8M8 12h5',
+  link: 'M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1',
 };
 
 /** Speech to text in Hebrew, for every writing field. Hidden where the browser has no speech recognition. */

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { putReceipt } from '../db';
 import { CATEGORIES, guessCategory } from '../categories';
 import { fmtDate, returnUntil, warrantyUntil } from '../dates';
-import { notify, reading } from '../store';
+import { attachFile, notify, reading } from '../store';
 import { useFile } from '../useFile';
 import { CatIcon, I, Icon, Mic } from '../ui';
 import type { Receipt, SaveState } from '../types';
@@ -14,6 +14,7 @@ export default function Editor({ r, go, onSave }: { r: Receipt; go: (h: string) 
   const timer = useRef<number>();
   const itemRef = useRef<HTMLInputElement>(null);
   const isReading = reading.has(r.id);
+  const attachRef = useRef<HTMLInputElement>(null);
 
   // Fields filled by reading the receipt arrive after the screen opened: take them unless typed over.
   useEffect(() => {
@@ -57,6 +58,10 @@ export default function Editor({ r, go, onSave }: { r: Receipt; go: (h: string) 
           <button className="btn primary press" onClick={() => go(`#/show/${r.id}`)}><Icon d={I.show} /> הצגה למוכרת</button>
           {f && f.type === 'application/pdf' ? <a className="btn press" href={f.original} target="_blank" rel="noreferrer"><Icon d={I.file} /> ה-PDF המקורי</a> : <button className="btn press" onClick={() => go('#/')}>לכל הקבלות</button>}
         </div>
+        {r.link && <a className="btn press" href={r.link} target="_blank" rel="noreferrer"><Icon d={I.link} /> פתיחת הקבלה הדיגיטלית</a>}
+        <button type="button" className="btn press" onClick={() => attachRef.current?.click()}><Icon d={I.gallery} /> {r.source === 'message' ? 'צירוף צילום של הקבלה' : 'החלפת הצילום'}</button>
+        <input ref={attachRef} type="file" accept="image/*,application/pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) attachFile(r, f); e.target.value = ''; }} />
+        {r.source === 'message' && <p className="reading-line dim">המסמך המקורי נמצא בקישור. צילום מסך שלו, מצורף כאן, יישמר גם בלי רשת.</p>}
         {isReading && <p className="reading-line">קורא את הקבלה על הטלפון: סכום, תאריך וחנות יתמלאו לבד.</p>}
       </div>
 
@@ -114,7 +119,7 @@ export default function Editor({ r, go, onSave }: { r: Receipt; go: (h: string) 
 
         {d.ocrText && (
           <details className="ocr">
-            <summary>הטקסט שנקרא מהקבלה (נכנס לחיפוש)</summary>
+            <summary>{r.source === 'message' ? 'ההודעה המקורית (נכנסת לחיפוש)' : 'הטקסט שנקרא מהקבלה (נכנס לחיפוש)'}</summary>
             <pre>{d.ocrText}</pre>
           </details>
         )}

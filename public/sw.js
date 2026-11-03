@@ -29,7 +29,11 @@ self.addEventListener('fetch', (e) => {
       try {
         const form = await e.request.formData();
         const files = form.getAll('receipt').filter((f) => typeof f !== 'string');
-        await inbox(files.map((f, i) => ({ id: Date.now() + '-' + i, file: f, name: f.name || 'קבלה' })));
+        const items = files.map((f, i) => ({ id: Date.now() + '-' + i, file: f, name: f.name || 'קבלה' }));
+        // A text message shared from the messages app arrives as text (and sometimes a separate url).
+        const text = [form.get('title'), form.get('text'), form.get('url')].filter((v) => typeof v === 'string' && v.trim()).join('\n');
+        if (text && !files.length) items.push({ id: Date.now() + '-t', text, name: 'הודעה' });
+        await inbox(items);
         const cs = await self.clients.matchAll({ type: 'window' });
         cs.forEach((c) => c.postMessage('kabalot:shared'));
       } catch (err) { /* the app opens anyway */ }
