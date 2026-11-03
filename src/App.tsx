@@ -97,7 +97,7 @@ export default function App() {
     <>
       <header className="bar">
         <a href="#/" className="brand press" onClick={() => { setOpen(null); }} aria-label="קבלות, לדף הבית">
-          <img src="/icon.svg" alt="" width={28} height={28} />
+          <img src={import.meta.env.BASE_URL + 'icon.svg'} alt="" width={28} height={28} />
           <span>קבלות</span>
         </a>
         {route === 'r' && <span className="crumb">{current?.item || 'קבלה חדשה'}</span>}

@@ -1,7 +1,8 @@
 /* Kabalot service worker: the app opens offline, and photos shared from the gallery land in the app. */
 const CACHE = 'kabalot-v1';
+const BASE = new URL(self.registration.scope).pathname; // '/' on Vercel, '/<repo>/preview/' on Pages
 
-self.addEventListener('install', (e) => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/icon.svg', '/manifest.webmanifest']))); });
+self.addEventListener('install', (e) => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then((c) => c.addAll([BASE, BASE + 'icon.svg', BASE + 'manifest.webmanifest']))); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 
 function inbox(items) {
@@ -23,7 +24,7 @@ function inbox(items) {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  if (e.request.method === 'POST' && url.pathname === '/share') {
+  if (e.request.method === 'POST' && url.pathname === BASE + 'share') {
     e.respondWith((async () => {
       try {
         const form = await e.request.formData();
@@ -32,18 +33,18 @@ self.addEventListener('fetch', (e) => {
         const cs = await self.clients.matchAll({ type: 'window' });
         cs.forEach((c) => c.postMessage('kabalot:shared'));
       } catch (err) { /* the app opens anyway */ }
-      return Response.redirect('/?shared=1', 303);
+      return Response.redirect(BASE + '?shared=1', 303);
     })());
     return;
   }
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   // Pages from the network first; built assets and icons from the cache.
   if (e.request.mode === 'navigate') {
-    e.respondWith(fetch(e.request).then((r) => { const copy = r.clone(); caches.open(CACHE).then((c) => c.put('/', copy)); return r; }).catch(() => caches.match('/')));
+    e.respondWith(fetch(e.request).then((r) => { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(BASE, copy)); return r; }).catch(() => caches.match(BASE)));
     return;
   }
   e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request).then((r) => {
-    if (r.ok && (url.pathname.startsWith('/assets/') || /\.(svg|png|webmanifest)$/.test(url.pathname))) { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
+    if (r.ok && (url.pathname.startsWith(BASE + 'assets/') || /\.(svg|png|webmanifest)$/.test(url.pathname))) { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
     return r;
   })));
 });
