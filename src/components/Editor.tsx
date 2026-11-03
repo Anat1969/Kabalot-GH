@@ -1,0 +1,125 @@
+import { useEffect, useRef, useState } from 'react';
+import { putReceipt } from '../db';
+import { CATEGORIES, guessCategory } from '../categories';
+import { fmtDate, returnUntil, warrantyUntil } from '../dates';
+import { notify, reading } from '../store';
+import { useFile } from '../useFile';
+import { CatIcon, I, Icon, Mic } from '../ui';
+import type { Receipt, SaveState } from '../types';
+
+/** One receipt: the image beside the fields. Every change is saved on its own. */
+export default function Editor({ r, go, onSave }: { r: Receipt; go: (h: string) => void; onSave: (s: SaveState) => void }) {
+  const [d, setD] = useState(r);
+  const f = useFile(r.fileId);
+  const timer = useRef<number>();
+  const itemRef = useRef<HTMLInputElement>(null);
+  const isReading = reading.has(r.id);
+
+  // Fields filled by reading the receipt arrive after the screen opened: take them unless typed over.
+  useEffect(() => {
+    setD((cur) => {
+      const n = { ...cur, ocrText: r.ocrText };
+      (['store', 'amount', 'date', 'category'] as const).forEach((k) => {
+        if (cur[k] !== r[k] && (r.auto[k as keyof Receipt['auto']] || k === 'category') && cur.updatedAt === r.updatedAt) (n as Record<string, unknown>)[k] = r[k];
+      });
+      n.auto = r.auto;
+      return n;
+    });
+  }, [r]);
+
+  useEffect(() => { if (!r.item) itemRef.current?.focus(); }, [r.id]);
+
+  const change = (patch: Partial<Receipt>) => {
+    setD((cur) => {
+      const auto = { ...cur.auto };
+      Object.keys(patch).forEach((k) => delete auto[k as keyof Receipt['auto']]);
+      const next = { ...cur, ...patch, auto, updatedAt: Date.now(), demo: cur.demo };
+      if (patch.item && cur.category === 'אחר') next.category = guessCategory(patch.item + ' ' + cur.ocrText) ?? 'אחר';
+      onSave('saving');
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => {
+        putReceipt(next).then(() => { onSave('saved'); notify(); }).catch(() => onSave('error'));
+      }, 350);
+      return next;
+    });
+  };
+
+  const autoMark = (k: keyof Receipt['auto']) => (d.auto[k] ? <span className="auto" title="נקרא מהקבלה. כדאי לוודא.">נקרא מהקבלה</span> : null);
+  const num = (v: string) => (v === '' ? null : Number(v.replace(',', '.')));
+
+  return (
+    <main className="editor">
+      <div className="ed-img">
+        <button className="press imgbtn" onClick={() => go(`#/show/${r.id}`)} aria-label="הצגה במסך מלא">
+          {f ? <img src={f.display} alt="הקבלה המקורית" /> : <span className="noimg">אין צילום</span>}
+        </button>
+        <div className="row2">
+          <button className="btn primary press" onClick={() => go(`#/show/${r.id}`)}><Icon d={I.show} /> הצגה למוכרת</button>
+          {f && f.type === 'application/pdf' ? <a className="btn press" href={f.original} target="_blank" rel="noreferrer"><Icon d={I.file} /> ה-PDF המקורי</a> : <button className="btn press" onClick={() => go('#/')}>לכל הקבלות</button>}
+        </div>
+        {isReading && <p className="reading-line">קורא את הקבלה על הטלפון: סכום, תאריך וחנות יתמלאו לבד.</p>}
+      </div>
+
+      <form className="ed-form" onSubmit={(e) => { e.preventDefault(); go('#/'); }}>
+        <label className="field wide">
+          <span className="lbl">מה נקנה</span>
+          <span className="inp">
+            <input ref={itemRef} value={d.item} onChange={(e) => change({ item: e.target.value })} placeholder="למשל: אוזניות, מעיל, מקדחה" />
+            <Mic label="מה נקנה" onText={(t) => change({ item: (d.item ? d.item + ' ' : '') + t })} />
+          </span>
+        </label>
+
+        <div className="cats" role="group" aria-label="סוג החפץ">
+          {CATEGORIES.map((c) => (
+            <button type="button" key={c.name} className="chip cat press" aria-pressed={d.category === c.name} onClick={() => change({ category: c.name })} title={c.name}>
+              <CatIcon name={c.name} size={18} /><span>{c.name}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="grid2">
+          <label className="field">
+            <span className="lbl">עלות {autoMark('amount')}</span>
+            <span className="inp"><input inputMode="decimal" className="num" value={d.amount ?? ''} onChange={(e) => change({ amount: num(e.target.value) })} placeholder="₪" /></span>
+          </label>
+          <label className="field">
+            <span className="lbl">תאריך {autoMark('date')}</span>
+            <span className="inp"><input type="date" className="num" value={d.date} onChange={(e) => change({ date: e.target.value })} /></span>
+          </label>
+          <label className="field wide">
+            <span className="lbl">חנות {autoMark('store')}</span>
+            <span className="inp">
+              <input value={d.store} onChange={(e) => change({ store: e.target.value })} placeholder="שם החנות" />
+              <Mic label="חנות" onText={(t) => change({ store: t })} />
+            </span>
+          </label>
+          <label className="field">
+            <span className="lbl">ימים להחזרה</span>
+            <span className="inp"><input inputMode="numeric" className="num" value={d.returnDays ?? ''} onChange={(e) => change({ returnDays: num(e.target.value) })} /></span>
+            <span className="hint num">{returnUntil(d) ? `עד ${fmtDate(returnUntil(d), true)}` : 'בלי החזרה'}</span>
+          </label>
+          <label className="field">
+            <span className="lbl">חודשי אחריות</span>
+            <span className="inp"><input inputMode="numeric" className="num" value={d.warrantyMonths ?? ''} onChange={(e) => change({ warrantyMonths: num(e.target.value) })} /></span>
+            <span className="hint num">{warrantyUntil(d) ? `עד ${fmtDate(warrantyUntil(d), true)}` : 'בלי אחריות'}</span>
+          </label>
+          <label className="field wide">
+            <span className="lbl">מילות מפתח והערות</span>
+            <span className="inp">
+              <textarea rows={2} value={d.notes} onChange={(e) => change({ notes: e.target.value })} placeholder="צבע, מידה, למי, מספר סידורי" />
+              <Mic label="הערות" onText={(t) => change({ notes: (d.notes ? d.notes + ' ' : '') + t })} />
+            </span>
+          </label>
+        </div>
+
+        {d.ocrText && (
+          <details className="ocr">
+            <summary>הטקסט שנקרא מהקבלה (נכנס לחיפוש)</summary>
+            <pre>{d.ocrText}</pre>
+          </details>
+        )}
+        <button type="submit" className="btn primary press done">סיום, לכל הקבלות</button>
+      </form>
+    </main>
+  );
+}
