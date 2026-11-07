@@ -403,3 +403,129 @@ mark { border-radius: 4px; padding: 0 3px; }
 /* show mode keeps a pure white field for the cashier */
 .show { background: #fff; }
 .show-h, .show-f { border-radius: 0; border-left: 0; border-right: 0; }
+
+/* =====================================================================
+   STONE & LIGHT DNA (ענת, 07.11.2026: "זקק את השפה העיצובית של המסכים מהתמונה")
+   Distilled from a calm meditation-app mock: warm olive-stone backdrop washed by a
+   diagonal of sunlight; warm frosted glass with hairline ivory frames; ivory text;
+   one champagne-gold accent for the main action; pill buttons, round icon buttons,
+   light large headlines. Replaces the cool palette of the glass layer above, keeps
+   its structure. The cashier screen stays pure white.
+   ===================================================================== */
+:root {
+  color-scheme: dark;
+  --bg-1: #6f6d5c; --bg-2: #55574a; --bg-3: #3d3f35;
+  --ink: #f4efe4; --ink-2: rgba(244, 239, 228, .74); --dim: rgba(244, 239, 228, .52);
+  --on-gold: #2f2c20;
+  --glass: rgba(255, 250, 238, .10);
+  --glass-strong: rgba(255, 250, 238, .16);
+  --glass-soft: rgba(255, 250, 238, .06);
+  --hair: rgba(255, 248, 232, .16);
+  --hair-strong: rgba(255, 248, 232, .30);
+  --hi: inset 0 1px 0 rgba(255, 255, 255, .12);
+  --glow: #e3cf9f;
+  --glow-soft: rgba(227, 207, 159, .22);
+  --gold: linear-gradient(180deg, #f1e6ca, #cdb685);
+  --rule: rgba(255, 248, 232, .14);
+  --rule-soft: rgba(255, 250, 238, .08);
+  --marker: rgba(227, 207, 159, .30);
+  --green: #b4dcb9; --green-bg: rgba(180, 220, 185, .14);
+  --amber: #f1cd8f; --amber-bg: rgba(241, 205, 143, .14);
+  --red: #f4a593;
+  --r: 22px; --r-s: 999px;
+  --shadow: 0 1px 0 rgba(255, 255, 255, .04), 0 14px 34px rgba(18, 18, 10, .22);
+  --shadow-up: 0 18px 44px rgba(18, 18, 10, .32);
+  --blur: blur(22px) saturate(1.15);
+}
+body { background: var(--bg-2); color: var(--ink); }
+body::before {
+  background:
+    linear-gradient(118deg, transparent 22%, rgba(255, 244, 214, .10) 34%, rgba(255, 244, 214, .02) 46%, transparent 52%),
+    radial-gradient(1100px 700px at 12% -12%, rgba(255, 240, 205, .30), transparent 62%),
+    radial-gradient(900px 600px at 100% 40%, rgba(140, 150, 120, .25), transparent 60%),
+    linear-gradient(165deg, var(--bg-1), var(--bg-2) 48%, var(--bg-3));
+}
+::placeholder { color: rgba(244, 239, 228, .45); }
+option { color: var(--on-gold); background: #f4efe4; }
+.bar { background: rgba(72, 73, 60, .55); border-bottom: 1px solid var(--hair); }
+.brand { color: var(--ink); }
+.brand img { border-radius: 8px; }
+
+/* type: light, large, airy */
+.greet { margin: 4px 0 2px; display: grid; gap: 2px; }
+.greet span { font-size: clamp(22px, 5.4vw, 30px); font-weight: 300; letter-spacing: -.01em; }
+.greet small { font-size: 14px; color: var(--ink-2); font-weight: 300; }
+.insight { font-weight: 300; font-size: clamp(28px, 7vw, 44px); }
+.insight .num, .insight b { font-weight: 400; }
+.explain { color: var(--ink-2); }
+.panel-h h2, .sheet-h, .group-h { font-weight: 400; }
+.num { font-weight: 400; }
+.amount, .row-amt, .hb-val, .strong, .facts .big, .show-amount { font-weight: 500; }
+
+/* surfaces */
+.card { background: var(--glass-soft); }
+.card.open { background: var(--glass-strong); }
+.card-head:hover, .hbar:hover, .row:hover { background: rgba(255, 250, 238, .07); }
+.thumb { background: rgba(255, 250, 238, .08); border-radius: 12px; }
+.inp, .msg { background: rgba(255, 250, 238, .07); border-color: var(--hair); color: var(--ink); }
+.inp:focus-within, .msg:focus, .searchbar:focus-within { border-color: var(--glow); box-shadow: 0 0 0 4px var(--glow-soft); }
+.sheet { background: rgba(78, 79, 66, .88); }
+.sheet-bg { background: rgba(20, 20, 12, .35); }
+.toast { background: rgba(32, 32, 24, .88); color: var(--ink); }
+.sortline, .tbl td { border-color: var(--hair); }
+.tbl th { background: transparent; }
+.picked .row, .row { background: var(--glass-soft); }
+
+/* actions: champagne pill for the one main action, ivory pill for the chosen state */
+.btn, .chip, .iconbtn, .th, .tab, .mic, .selects select, .cur { background: var(--glass); color: var(--ink); border-color: var(--hair); }
+.btn.primary { background: var(--gold); color: var(--on-gold); border-color: rgba(255, 255, 255, .35); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 8px 24px rgba(205, 182, 133, .28); }
+.btn.primary.press:hover:not(:disabled) { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 0 4px var(--glow-soft), 0 10px 28px rgba(205, 182, 133, .35); }
+.chip[aria-pressed='true'], .th.on, .tab.on { background: rgba(244, 239, 228, .92); color: var(--on-gold); box-shadow: 0 6px 18px rgba(18, 18, 10, .22); }
+.press:hover:not(:disabled) { box-shadow: var(--hi), 0 0 0 4px var(--glow-soft), var(--shadow); }
+.btn, .tab { border-radius: 999px; }
+.iconbtn { border-radius: 50%; }
+.mic { border-radius: 999px; margin: 4px; width: 40px; height: 40px; align-self: center; }
+.searchbar .mic { border-radius: 50%; border: 1px solid var(--hair); width: 40px; height: 40px; }
+.mic.on { background: var(--red); color: var(--on-gold); }
+.row3 .btn.big { border-radius: var(--r); }
+.capture .btn.primary .icon, .btn.primary svg { stroke: var(--on-gold); }
+
+/* categories as round icon buttons, like the image's category row */
+.cats { gap: 10px 6px; }
+.cat, .cat[aria-pressed='true'] { background: transparent !important; box-shadow: none !important; border: 0 !important; color: var(--ink-2); padding: 2px 0; }
+.cat svg { width: 46px; height: 46px; padding: 12px; border-radius: 50%; background: var(--glass); border: 1px solid var(--hair); box-shadow: var(--hi); transition: background .2s, transform .2s; }
+.cat:hover svg { transform: translateY(-2px); box-shadow: 0 0 0 4px var(--glow-soft); }
+.cat[aria-pressed='true'] { color: var(--ink); }
+.cat[aria-pressed='true'] svg { background: var(--gold); stroke: var(--on-gold); border-color: rgba(255, 255, 255, .4); }
+
+/* status and highlight in the warm palette */
+mark { background: var(--marker); color: var(--ink); }
+.auto { background: var(--marker); color: var(--ink); }
+.tag.return.soon { background: var(--green); color: var(--on-gold); }
+.tag.expired { background: rgba(255, 250, 238, .08); }
+.readout { background: var(--marker); }
+.purpose { border-color: var(--glow); color: var(--ink-2); }
+.demo-note, .small, .inspire, .axis-note, .legend, .legend2 { color: var(--dim); }
+
+/* charts on stone */
+.mbar.on { background: var(--glow-soft); }
+.mbar:hover { background: rgba(255, 250, 238, .06); }
+.seg-t { opacity: .92; }
+.mbar-forecast { border-color: var(--glow); background: var(--glow-soft); }
+.mbar.future .mbar-val { color: var(--glow); }
+.sw.fc { border-color: var(--glow); background: var(--glow-soft); }
+.hb-track { background: rgba(255, 250, 238, .08); }
+.hb-fill { background: var(--gold); }
+.mbar-missing { background: var(--red); color: var(--on-gold); }
+.hbar.on, .mbar.on { box-shadow: inset 0 0 0 1px var(--glow); }
+
+/* the cashier sees a pure white receipt, whatever the theme */
+.show { background: #fff; color: #141414; color-scheme: light; }
+.show .show-h, .show .show-f { background: #fff; color: #141414; border-color: #e6e6e6; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.show .show-sub { color: #555; }
+.show .iconbtn, .show .btn { background: #f2f2f2; color: #141414; border-color: #e3e3e3; }
+.show .btn.primary { background: #141414; color: #fff; }
+@media (max-width: 720px) {
+  .subs th:nth-child(4), .subs td:nth-child(4) { display: none; }
+  .subs td, .subs th { padding-inline: 4px; }
+}

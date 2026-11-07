@@ -9,6 +9,12 @@ import Peek from './Peek';
 import MessageBox from './MessageBox';
 import type { Receipt } from '../types';
 
+/** A calm greeting by the hour, in the spirit of the design (ענת, 07.11.2026). */
+export function greeting(d = new Date()) {
+  const h = d.getHours();
+  return h >= 5 && h < 12 ? 'בוקר טוב' : h < 17 && h >= 12 ? 'צהריים טובים' : h >= 17 && h < 21 ? 'ערב טוב' : 'לילה טוב';
+}
+
 interface Prefs { view: 'cards' | 'table'; group: GroupKey; sort: SortKey; dir: 1 | -1; status: StatusFilter }
 const DEFAULT: Prefs = { view: 'cards', group: 'category', sort: 'date', dir: -1, status: 'all' };
 const loadPrefs = (): Prefs => { try { return { ...DEFAULT, ...JSON.parse(localStorage.getItem('kabalot.prefs') || '{}') }; } catch { return DEFAULT; } };
@@ -46,6 +52,7 @@ export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy, 
   return (
     <main className="home">
       <section className="hero">
+        <p className="greet"><span>{greeting()}, ענת</span><small>{list.length ? 'כל קבלה במקומה. נשימה אחת, ומוצאים.' : 'מתחילים בקבלה אחת.'}</small></p>
         {list.length ? (
           <>
             <h1 className="insight"><span className="num">{list.length}</span> קבלות, <span className="num">{fmtMoney(sum(list))}</span></h1>
