@@ -75,9 +75,10 @@ async function readInto(id: string, image: Blob, keep = '') {
 }
 
 /** A receipt that arrived as a text message: the text itself is the receipt, plus its link. */
-export async function addMessage(text: string): Promise<string> {
+export async function addMessage(text: string, storeHint?: string): Promise<string> {
   persist();
   const p = parseMessage(text);
+  if (storeHint) p.store = storeHint;
   const img = await messageImage(text, p.store);
   const fileId = uid();
   await putFile({ id: fileId, original: img.display, display: img.display, name: 'הודעה' });

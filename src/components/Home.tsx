@@ -38,6 +38,7 @@ export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy, 
   }, [list, today]);
   const soonest = useMemo(() => list.filter((r) => statusOf(r, today) === 'return').sort((a, b) => (returnUntil(a)! < returnUntil(b)! ? -1 : 1))[0], [list, today]);
   const hasDemo = list.some((r) => r.demo);
+  const missing = useMemo(() => list.filter((r) => r.amount == null).length, [list]);
 
   const sortBy = (k: SortKey) => set(p.sort === k ? { dir: (p.dir * -1) as 1 | -1 } : { sort: k, dir: k === 'date' || k === 'amount' ? -1 : 1 });
   const dirWord = p.sort === 'date' || p.sort === 'returnUntil' || p.sort === 'warrantyUntil' ? (p.dir === -1 ? 'חדש לישן' : 'ישן לחדש') : p.sort === 'amount' ? (p.dir === -1 ? 'יקר לזול' : 'זול ליקר') : p.dir === 1 ? 'א עד ת' : 'ת עד א';
@@ -50,7 +51,8 @@ export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy, 
             <h1 className="insight"><span className="num">{list.length}</span> קבלות, <span className="num">{fmtMoney(sum(list))}</span></h1>
             <p className="explain">
               {soonest ? <>את <b>{soonest.item || 'החפץ האחרון'}</b> אפשר עוד להחזיר, <mark>{relDays(returnUntil(soonest), today)}</mark>. </> : null}
-              <b className="num">{counts.warranty}</b> חפצים עדיין באחריות.
+              {counts.warranty ? <><b className="num">{counts.warranty}</b> חפצים עדיין באחריות. </> : null}
+              {missing ? <><b className="num">{missing}</b> קבלות בלי סכום: להשלים מהקבלה המקורית.</> : null}
             </p>
           </>
         ) : (
@@ -132,7 +134,7 @@ export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy, 
                     <h2 className="group-h">
                       {p.group === 'category' && <CatIcon name={g.name} />}
                       <span>{g.name}</span>
-                      <span className="meta num">{g.items.length} · {fmtMoney(sum(g.items))}</span>
+                      <span className="meta num">{g.items.length} · {g.items.every((r) => r.amount == null) ? 'בלי סכום' : fmtMoney(sum(g.items))}</span>
                     </h2>
                   )}
                   <ul className="cards">
@@ -145,7 +147,7 @@ export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy, 
                             <span className="sub"><Mark text={r.store || 'חנות'} q={q} /> · <span className="num">{fmtDate(r.date)}</span></span>
                           </span>
                           <span className="card-side">
-                            <span className="amount num">{fmtMoney(r.amount)}</span>
+                            <span className={'amount num' + (r.amount == null ? ' missing' : '')}>{r.amount == null ? 'חסר סכום' : fmtMoney(r.amount)}</span>
                             <StatusTag r={r} today={today} />
                           </span>
                         </button>
