@@ -26,7 +26,7 @@ export interface Receipt {
   /** A recurring charge (monthly subscription) or a one-time purchase. */
   kind?: 'subscription' | 'one-time';
   /** Currency of the original charge. `amount` is always in shekels. */
-  currency?: 'ILS' | 'USD' | 'EUR';
+  currency?: 'ILS' | 'USD' | 'EUR' | 'JPY';
   /** The amount in the original currency, when it is not shekels. */
   amountOrig?: number | null;
   /** Bank of Israel representative rate used for the conversion, and its date. */

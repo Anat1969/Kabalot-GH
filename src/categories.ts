@@ -14,6 +14,7 @@ export const CATEGORIES: Category[] = [
   { name: 'בינה מלאכותית', color: '#7048e8', icon: 'M12 3v3M12 18v3M3 12h3M18 12h3M7 7h10v10H7zM10 10h4v4h-4z', words: ['google ai', 'gemini', 'claude', 'anthropic', 'chatgpt', 'openai', 'lovable', 'midjourney', 'base44', 'perplexity', 'cursor', 'elevenlabs', 'suno', 'runway', 'heygen'] },
   { name: 'פיתוח ותשתיות', color: '#364fc7', icon: 'M8 7l-5 5l5 5M16 7l5 5l-5 5M13 5l-2 14', words: ['supabase', 'vercel', 'github', 'netlify', 'apify', 'domain', 'דומיין', 'hosting'] },
   { name: 'תקשורת וגלישה', color: '#1098ad', icon: 'M5 12a10 10 0 0 1 14 0M8 15a5.5 5.5 0 0 1 8 0M12 19h.01M2 9a14.5 14.5 0 0 1 20 0', words: ['ubigi', 'transatel', 'esim', 'גלישה', 'סלקום', 'פרטנר', 'הוט', 'בזק', 'גולן', 'airalo'] },
+  { name: 'נסיעות ולינה', color: '#d9480f', icon: 'M3 20h18M5 20V9l7-5l7 5v11M9 20v-5h6v5M10 10h4', words: ['booking', 'airbnb', 'hotel', 'מלון', 'לינה', 'טיסה', 'flight', 'אל על', 'israir', 'arkia', 'wizz', 'ryanair', 'expedia', 'agoda'] },
   { name: 'מנויים ושירותים', color: '#862e9c', icon: 'M4 6h16v12H4zM4 10h16M8 15h3M17 3v3M7 3v3', words: ['מנוי', 'subscription', 'google play', 'google one', 'netflix', 'spotify', 'lovable', 'supabase', 'vercel', 'openai', 'anthropic', 'icloud', 'apple', 'חיוב חודשי'] },
   { name: 'אחר', color: '#868e96', icon: 'M5 4h14v16l-3-2l-2 2l-2-2l-2 2l-2-2l-3 2zM9 9h6M9 13h6', words: [] },
 ];

@@ -2,14 +2,14 @@
  *  with the Bank of Israel representative rate of the charge date (the official Israeli standard). */
 import type { Receipt } from './types';
 
-export const SYMBOL = { ILS: '₪', USD: '$', EUR: '€' } as const;
+export const SYMBOL = { ILS: '₪', USD: '$', EUR: '€', JPY: '¥' } as const;
 export type Cur = keyof typeof SYMBOL;
 
 export const curOf = (r: Receipt): Cur => r.currency ?? 'ILS';
 
 export function fmtCur(n: number | null | undefined, cur: Cur = 'ILS') {
   if (n == null || Number.isNaN(n)) return '';
-  const s = n.toLocaleString('he-IL', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
+  const s = n.toLocaleString('he-IL', { minimumFractionDigits: n % 1 && cur !== 'JPY' ? 2 : 0, maximumFractionDigits: cur === 'JPY' ? 0 : 2 });
   return SYMBOL[cur] + s;
 }
 
@@ -17,7 +17,7 @@ export function fmtCur(n: number | null | undefined, cur: Cur = 'ILS') {
 export function foreignNote(r: Receipt) {
   const cur = curOf(r);
   if (cur === 'ILS' || r.amountOrig == null) return '';
-  return `${fmtCur(r.amountOrig, cur)}${r.rate ? ` · שער יציג ${r.rate}` : ' · בלי שער'}`;
+  return `${fmtCur(r.amountOrig, cur)}${r.rate ? ` · שער יציג ${cur === 'JPY' ? `${+(r.rate * 100).toFixed(4)} ל-100` : r.rate}` : ' · בלי שער'}`;
 }
 
 /** Fetches the representative rate for a date (the app's own /api/rate, which asks the Bank of Israel). */

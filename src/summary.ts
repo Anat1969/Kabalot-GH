@@ -79,7 +79,7 @@ export function subscriptions(list: Receipt[], today: string): Subscription[] {
     subs.push({
       store: last.store, category: last.category, item: last.item, charges,
       monthly: lastAmt,
-      monthlyOrig: last.currency && last.currency !== 'ILS' && last.amountOrig != null ? `${last.currency === 'USD' ? '$' : '€'}${last.amountOrig}` : '',
+      monthlyOrig: last.currency && last.currency !== 'ILS' && last.amountOrig != null ? `${({ USD: '$', EUR: '€', JPY: '¥' } as Record<string, string>)[last.currency] ?? ''}${last.amountOrig}` : '',
       total: charges.reduce((s, r) => s + (r.amount ?? 0), 0),
       last: last.date, next: active ? next : null,
       priceChangedFrom: changed ? prev!.amount : null,

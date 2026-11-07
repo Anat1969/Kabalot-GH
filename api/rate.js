@@ -3,8 +3,8 @@
 export default async function handler(req, res) {
   const cur = String(req.query.cur || 'USD').toUpperCase();
   const date = String(req.query.date || '');
-  if (!['USD', 'EUR'].includes(cur) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    res.status(400).json({ error: 'cur must be USD or EUR, date YYYY-MM-DD' });
+  if (!['USD', 'EUR', 'JPY'].includes(cur) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    res.status(400).json({ error: 'cur must be USD, EUR or JPY, date YYYY-MM-DD' });
     return;
   }
   const d = new Date(date + 'T12:00:00Z');
@@ -17,7 +17,9 @@ export default async function handler(req, res) {
     const last = rows.filter((c) => c[12] && c[13]).pop();
     if (!last) { res.status(404).json({ error: 'no rate published for this period' }); return; }
     res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=604800');
-    res.status(200).json({ cur, date: last[12], rate: Number(last[13]), source: 'בנק ישראל, שער יציג' });
+    // The bank quotes some currencies per 10^UNIT_MULT units (yen: per 100). Return the rate for 1 unit.
+    const per = 10 ** Number(last[10] || 0);
+    res.status(200).json({ cur, date: last[12], rate: Number(last[13]) / per, source: 'בנק ישראל, שער יציג' });
   } catch (e) {
     res.status(502).json({ error: 'Bank of Israel did not answer' });
   }

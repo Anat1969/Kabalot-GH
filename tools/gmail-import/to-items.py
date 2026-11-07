@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Turns the Gmail extraction (gmail.json) into app receipts (items.json), converting foreign
 charges with the Bank of Israel representative rate of the charge date (usd.csv / eur.csv, SDMX CSV).
-Usage: python3 -I to-items.py gmail.json usd.csv items.json [eur.csv]"""
+Usage: python3 -I to-items.py gmail.json usd.csv items.json [eur.csv] [jpy.csv]"""
 import csv, json, sys
 
-TOPIC = {'בינה מלאכותית': 'בינה מלאכותית', 'פיתוח ותשתיות': 'פיתוח ותשתיות', 'תקשורת וגלישה': 'תקשורת וגלישה',
+TOPIC = {'נסיעות ולינה': 'נסיעות ולינה', 'בינה מלאכותית': 'בינה מלאכותית', 'פיתוח ותשתיות': 'פיתוח ותשתיות', 'תקשורת וגלישה': 'תקשורת וגלישה',
          'בריאות': 'בריאות ויופי', 'אחר': 'אחר'}
 
 def rates(path):
@@ -12,7 +12,9 @@ def rates(path):
     if not path: return out
     with open(path, encoding='utf-8') as f:
         for row in csv.DictReader(f):
-            if row.get('TIME_PERIOD') and row.get('OBS_VALUE'): out.append((row['TIME_PERIOD'], float(row['OBS_VALUE'])))
+            if row.get('TIME_PERIOD') and row.get('OBS_VALUE'):
+                # the bank quotes yen per 100 units (UNIT_MULT=2): store the rate for 1 unit
+                out.append((row['TIME_PERIOD'], float(row['OBS_VALUE']) / 10 ** int(row.get('UNIT_MULT') or 0)))
     return sorted(out)
 
 def rate_on(table, date):
@@ -21,8 +23,8 @@ def rate_on(table, date):
         if d <= date: best = (d, v)
     return best
 
-def main(src, usd, dst, eur=None):
-    tables = {'USD': rates(usd), 'EUR': rates(eur)}
+def main(src, usd, dst, eur=None, jpy=None):
+    tables = {'USD': rates(usd), 'EUR': rates(eur), 'JPY': rates(jpy)}
     items = []
     for x in json.load(open(src, encoding='utf-8')):
         cur = x.get('currency') or 'ILS'
@@ -40,6 +42,7 @@ def main(src, usd, dst, eur=None):
             if r and x.get('amount') is not None:
                 it['rateDate'], it['rate'] = r
                 it['amount'] = round(x['amount'] * r[1], 2)
+                it['rate'] = round(r[1], 6)
             else:
                 it['amount'] = None
         items.append(it)

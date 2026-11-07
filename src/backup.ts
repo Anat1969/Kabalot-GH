@@ -1,7 +1,12 @@
 import { allReceipts, getFile, putFile, putReceipt } from './db';
 
 /** Same receipt seen twice (imported again, or the same email): matched by source id, link, or id. */
-const keysOf = (r: Receipt) => [r.sourceId, r.link && r.link.includes('mail.google.com') ? r.link.replace(/\|.*$/, '') : ''].filter(Boolean) as string[];
+const threadKey = (r: Receipt) => (r.link && r.link.includes('mail.google.com') ? r.link.replace(/\|.*$/, '') : '');
+/** Keys an existing receipt is known by: its message id; only receipts without one fall back to the mail thread
+ *  (one thread can hold several charges, e.g. two hotel payments). */
+const ownKeys = (r: Receipt) => (r.sourceId ? [r.sourceId] : [threadKey(r)].filter(Boolean));
+/** Keys an incoming receipt may match: its id, and its thread for older receipts saved without an id. */
+const keysOf = (r: Receipt) => [r.sourceId, threadKey(r)].filter(Boolean) as string[];
 import { todayISO } from './dates';
 import type { Receipt } from './types';
 
@@ -31,8 +36,8 @@ export async function importBackup(file: File) {
   const data = JSON.parse(await file.text()) as { app: string; receipts: Receipt[]; files: Record<string, { original: string; display: string; name: string }> };
   if (data.app !== 'kabalot') throw new Error('not a backup');
   const existing = await allReceipts();
-  const seen = new Set(existing.flatMap(keysOf));
-  const byKey = new Map(existing.flatMap((r) => keysOf(r).map((k) => [k, r] as const)));
+  const seen = new Set(existing.flatMap(ownKeys));
+  const byKey = new Map(existing.flatMap((r) => ownKeys(r).map((k) => [k, r] as const)));
   const empty = (v: unknown) => v == null || v === '' || (typeof v === 'object' && !Object.keys(v as object).length);
   const ids = new Set(existing.map((r) => r.id));
   let added = 0, skipped = 0, updated = 0;
@@ -51,7 +56,7 @@ export async function importBackup(file: File) {
       }
       skipped++; continue;
     }
-    ks.forEach((k) => seen.add(k));
+    ownKeys(r).forEach((k) => seen.add(k));
     const f = r.fileId ? data.files[r.fileId] : undefined;
     if (f && r.fileId) {
       const original = await fromB64(f.original);

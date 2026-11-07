@@ -108,7 +108,7 @@ export default function Editor({ r, go, onSave }: { r: Receipt; go: (h: string) 
               <input inputMode="decimal" className="num" value={(cur === 'ILS' ? d.amount : d.amountOrig) ?? ''} placeholder={SYMBOL[cur]}
                 onChange={(e) => (cur === 'ILS' ? change({ amount: num(e.target.value) }) : change({ amountOrig: num(e.target.value), amount: toShekels(num(e.target.value), d.rate) }))} />
               <select className="cur" value={cur} onChange={(e) => setForeign(e.target.value as Cur, cur === 'ILS' ? d.amount : d.amountOrig ?? null, d.date)} aria-label="מטבע">
-                <option value="ILS">₪</option><option value="USD">$</option><option value="EUR">€</option>
+                <option value="ILS">₪</option><option value="USD">$</option><option value="EUR">€</option><option value="JPY">¥</option>
               </select>
             </span>
             {cur !== 'ILS' && (
