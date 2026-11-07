@@ -11,7 +11,7 @@ import { fetchRate, fmtCur, SYMBOL, toShekels, type Cur } from '../money';
 /** One receipt: the image beside the fields. Every change is saved on its own. */
 export default function Editor({ r, go, onSave }: { r: Receipt; go: (h: string) => void; onSave: (s: SaveState) => void }) {
   const [d, setD] = useState(r);
-  const f = useFile(r.fileId);
+  const f = useFile(r.fileId, r);
   const timer = useRef<number>();
   const itemRef = useRef<HTMLInputElement>(null);
   const isReading = reading.has(r.id);

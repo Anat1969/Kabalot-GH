@@ -4,6 +4,7 @@ import { fmtDate, todayISO } from '../dates';
 import { fmtCur, foreignNote } from '../money';
 import { byKey, byMonth, monthShort, projection, subscriptions, toCSV, ym, type Bucket } from '../summary';
 import { CatIcon } from '../ui';
+import Alerts from './Alerts';
 import type { Receipt } from '../types';
 
 type Period = string; // 'last12' or a year like '2026'
@@ -76,6 +77,7 @@ export default function Summary({ list, go }: { list: Receipt[]; go: (h: string)
           {forecastTotal ? <>צפי עד {monthShort(to)}: עוד <b className="num">{money(forecastTotal)}</b> במנויים, ובסך הכול <b className="num">{money(total + forecastTotal)}</b>. </> : null}
           {missing ? <span className="warn-red"><b className="num">{missing}</b> קבלות בלי סכום, ולכן הסכום חסר.</span> : null}
         </p>
+        <Alerts list={real} onPick={(store) => setPick({ kind: 'store', key: store })} />
         <div className="seg periods" role="group" aria-label="תקופה">
           <button className="chip press" aria-pressed={period === 'last12'} onClick={() => { setPeriod('last12'); setPick(null); }}>12 חודשים</button>
           {years.slice(0, 3).map((y) => <button key={y} className="chip press" aria-pressed={period === y} onClick={() => { setPeriod(y); setPick(null); }}>{y}</button>)}

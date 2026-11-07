@@ -31,10 +31,15 @@ function tx<T>(store: string, mode: IDBTransactionMode, fn: (s: IDBObjectStore) 
 }
 
 export const allReceipts = () => tx<Receipt[]>('receipts', 'readonly', (s) => s.getAll());
-export const putReceipt = (r: Receipt) => tx('receipts', 'readwrite', (s) => { s.put(r); });
-export const deleteReceipt = (id: string) => tx('receipts', 'readwrite', (s) => { s.delete(id); });
+/** Called after every local change, so the cloud sync can mirror it. `silent` writes come from the cloud itself. */
+type Change = { kind: 'put'; r: Receipt } | { kind: 'del'; id: string } | { kind: 'file'; f: StoredFile };
+let changeHook: ((c: Change) => void) | null = null;
+export const setChangeHook = (fn: typeof changeHook) => { changeHook = fn; };
+
+export const putReceipt = (r: Receipt, silent = false) => tx('receipts', 'readwrite', (s) => { s.put(r); }).then(() => { if (!silent) changeHook?.({ kind: 'put', r }); });
+export const deleteReceipt = (id: string, silent = false) => tx('receipts', 'readwrite', (s) => { s.delete(id); }).then(() => { if (!silent) changeHook?.({ kind: 'del', id }); });
 export const getFile = (id: string) => tx<StoredFile | undefined>('files', 'readonly', (s) => s.get(id));
-export const putFile = (f: StoredFile) => tx('files', 'readwrite', (s) => { s.put(f); });
+export const putFile = (f: StoredFile, silent = false) => tx('files', 'readwrite', (s) => { s.put(f); }).then(() => { if (!silent) changeHook?.({ kind: 'file', f }); });
 export const deleteFile = (id: string) => tx('files', 'readwrite', (s) => { s.delete(id); });
 
 /** Files shared into the app from the phone gallery (written by sw.js). */

@@ -1,8 +1,9 @@
 # קבלות מהמייל: איסוף חודשי
 
 המטרה: בכל חודש, כל הקבלות והחשבוניות מ-Gmail של ענת נכנסות לאפליקציה, בלי הקלדה.
-האפליקציה שומרת בטלפון בלבד, ולכן התוצר הוא **קובץ שחזור** שענת פותחת באפליקציה: כפתור הלוגו, ואז "שחזור מגיבוי".
-קבלה שכבר קיימת לא משוכפלת. אם חסר בה סכום או מטבע, הקובץ משלים אותו, בלי לדרוס מה שענת הקלידה.
+**מאז 07.11.2026 הקבלות נכנסות ישר לחשבון של ענת** (Supabase `ktqmwpbzcnzkhjskqisy`, טבלה `kabalot_receipts`, owner `825fd850-e586-4775-b861-cb2409afa74a`). האפליקציה מושכת אותן לבד בכל מכשיר, ומציירת להן תמונה מהטקסט. אין קובץ ואין שחזור.
+המזהה הוא `gm-<messageId>`, ולכן הכנסה חוזרת לא משכפלת (`on conflict (owner, id)`).
+קובץ שחזור (שלבים 6 ו-7) נשאר רק כחלופה, כשאין גישה ל-Supabase.
 
 ## השלבים
 1. **חיפוש ב-Gmail** (כלי Gmail, קריאה בלבד) לחודש הקודם: `after:YYYY/MM/01 before:YYYY/MM+1/01`, עם מילים: receipt, invoice, קבלה, חשבונית, "payment received", "חויב", ושולחי חיוב ידועים: googleplay-noreply@google.com, invoice+statements@lovable.dev, invoice+statements@supabase.com, invoice+statements@midjourney.com, receipts+...@stripe.com, team@base44.com, tabulaprio@clalit.org.il.
@@ -13,7 +14,14 @@
 5. **ממירים לפריטים:** `python3 -I tools/gmail-import/to-items.py gmail.json usd.csv items.json [eur.csv] [jpy.csv]`
 6. **בונים את הקובץ בקוד של האפליקציה:** `npx vite --port 5180 --strictPort &` ואז `node tools/gmail-import/build.cjs items.json kabalot-YYYY-MM.json`
 7. **בודקים:** שחזור הקובץ בדפדפן נקי מחזיר את מספר הקבלות הצפוי.
-8. **מוסרים לענת** את הקובץ, עם שורה אחת: כמה קבלות, סך בשקלים, ומה חסר סכום.
+8. **מכניסים לחשבון** (כלי Supabase, execute_sql), לפי הדפוס:
+   ```sql
+   insert into public.kabalot_receipts (owner, id, data)
+   select '825fd850-e586-4775-b861-cb2409afa74a'::uuid, x->>'id', x from jsonb_array_elements('<items as Receipt json>'::jsonb) x
+   on conflict (owner, id) do nothing;
+   ```
+   כל פריט הוא Receipt: `id = 'gm-'||messageId`, item, store, category, date, amount (שקלים), currency, amountOrig, rate, rateDate, kind, notes, `ocrText` (תקציר המייל), `fileId = 'f-'||messageId`, `thumb = ''`, `source = 'email'`, `sourceId = 'gmail:'||messageId`, link, `auto = {}`, createdAt ו-updatedAt באלפיות שנייה. לא לדרוס קבלה קיימת (`do nothing`), כי ענת אולי השלימה בה סכום.
+9. **מודיעים לענת** בשורה אחת: כמה קבלות נכנסו, סך בשקלים, אילו מנויים חויבו, מה בלי סכום, ושינוי מחיר אם היה. היא רואה אותן באפליקציה, בלי לעשות דבר.
 
 ## גבולות ידועים
 - מיילים של Anthropic (חיוב Claude) חסומים לכלי Gmail של Claude. ענת מוסיפה אותם ידנית מהמייל.

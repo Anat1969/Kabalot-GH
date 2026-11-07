@@ -6,7 +6,7 @@ import { curOf, fmtCur, foreignNote } from '../money';
 
 /** The receipt opened in place: the original image, the facts, and the two actions. */
 export default function Peek({ r, go }: { r: Receipt; go: (h: string) => void }) {
-  const f = useFile(r.fileId);
+  const f = useFile(r.fileId, r);
   const ret = returnUntil(r), war = warrantyUntil(r);
   return (
     <div className="peek">

@@ -6,7 +6,7 @@ import type { Receipt } from '../types';
 
 /** For the person at the counter: white, big, zoomable, and the screen stays on. */
 export default function Show({ r, onClose }: { r: Receipt; onClose: () => void }) {
-  const f = useFile(r.fileId);
+  const f = useFile(r.fileId, r);
   const [zoom, setZoom] = useState(1);
   const box = useRef<HTMLDivElement>(null);
 

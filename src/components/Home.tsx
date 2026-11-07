@@ -7,6 +7,7 @@ import StatusTag from './Status';
 import { curOf, fmtCur } from '../money';
 import Peek from './Peek';
 import MessageBox from './MessageBox';
+import Alerts from './Alerts';
 import type { Receipt } from '../types';
 
 /** A calm greeting by the hour, in the spirit of the design (ענת, 07.11.2026). */
@@ -19,9 +20,9 @@ interface Prefs { view: 'cards' | 'table'; group: GroupKey; sort: SortKey; dir: 
 const DEFAULT: Prefs = { view: 'cards', group: 'category', sort: 'date', dir: -1, status: 'all' };
 const loadPrefs = (): Prefs => { try { return { ...DEFAULT, ...JSON.parse(localStorage.getItem('kabalot.prefs') || '{}') }; } catch { return DEFAULT; } };
 
-interface Props { list: Receipt[]; q: string; setQ: (q: string) => void; open: string | null; setOpen: (id: string | null) => void; go: (h: string) => void; onFiles: (f: FileList | null) => void; busy: boolean; onMessage: (text: string) => Promise<void> }
+interface Props { list: Receipt[]; q: string; setQ: (q: string) => void; open: string | null; setOpen: (id: string | null) => void; go: (h: string) => void; onFiles: (f: FileList | null) => void; busy: boolean; onMessage: (text: string) => Promise<void>; signedIn: boolean; syncing: boolean; onLogin: () => void }
 
-export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy, onMessage }: Props) {
+export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy, onMessage, signedIn, syncing, onLogin }: Props) {
   const [p, setP] = useState<Prefs>(loadPrefs);
   const set = (patch: Partial<Prefs>) => setP((old) => { const n = { ...old, ...patch }; try { localStorage.setItem('kabalot.prefs', JSON.stringify(n)); } catch { /* ok */ } return n; });
   const camRef = useRef<HTMLInputElement>(null);
@@ -68,6 +69,7 @@ export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy, 
             <p className="explain">מצלמים קבלה, כותבים מה נקנה, ומוצאים אותה לפי <b>שם החפץ</b>.</p>
           </>
         )}
+        {list.length ? <Alerts list={list} onPick={(store) => { setQ(store); }} /> : null}
         <div className="row3 capture">
           <button className="btn primary big press" onClick={() => camRef.current?.click()} disabled={busy}><Icon d={I.camera} size={22} /> <span>{busy ? 'שומר...' : 'צילום'}</span></button>
           <button className="btn big press" onClick={() => galRef.current?.click()} disabled={busy}><Icon d={I.gallery} size={22} /> <span>גלריה או PDF</span></button>
@@ -80,15 +82,25 @@ export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy, 
 
       {!list.length ? (
         <section className="empty">
+          {!signedIn ? (
+            <div className="signin-card">
+              <h2>הקבלות שלך שמורות בחשבון</h2>
+              <p>כניסה אחת, והן מופיעות כאן: 43 קבלות 2026, מכל המכשירים.</p>
+              <button className="btn primary big press" onClick={onLogin}>כניסה לחשבון</button>
+            </div>
+          ) : syncing ? <p className="signin-card">מביא את הקבלות מהחשבון...</p> : null}
           <ol className="steps">
             <li><b>צילום</b> הקבלה, תמונה מהגלריה, או <b>הודעה</b> עם קבלה דיגיטלית.</li>
             <li><b>שם החפץ:</b> סכום, תאריך וחנות נקראים מהקבלה לבד.</li>
             <li><b>בחנות:</b> מחפשים את החפץ, ולוחצים "הצגה למוכרת".</li>
           </ol>
-          <p className="small">הקבלות נשמרות רק בטלפון הזה. גיבוי לקובץ נמצא בכפתור הלוגו.</p>
+          <p className="small">בלי חשבון, הקבלות נשמרות רק במכשיר הזה. גיבוי לקובץ נמצא בכפתור הלוגו.</p>
         </section>
       ) : (
         <section className="frame">
+          {!signedIn && (
+            <p className="local-note">הקבלות שמורות רק במכשיר הזה. <button className="link press" onClick={onLogin}>כניסה לחשבון</button> מסנכרנת אותן לכל המכשירים.</p>
+          )}
           <div className="searchbar">
             <Icon d={I.search} />
             <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש: אוזניות, איקאה, 549, מרץ..." aria-label="חיפוש קבלה לפי מילות מפתח" />

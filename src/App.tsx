@@ -7,6 +7,10 @@ import Home from './components/Home';
 import Editor from './components/Editor';
 import Show from './components/Show';
 import Summary, { downloadCSV } from './components/Summary';
+import Account, { useCloud } from './components/Account';
+import { initCloud, signOut } from './cloud';
+
+initCloud().catch(() => {});
 import AIMenu, { type MenuItem } from './components/AIMenu';
 import type { SaveState } from './types';
 
@@ -84,8 +88,13 @@ export default function App() {
     return () => { window.removeEventListener('kabalot:reload', reload); window.removeEventListener('kabalot:clear-demo', clearDemo); };
   }, []);
 
+  const cloud = useCloud();
+  const [login, setLogin] = useState(false);
   const menuItems = useMemo<MenuItem[]>(() => {
     const items: MenuItem[] = [
+      cloud.status === 'out'
+        ? { label: 'כניסה לחשבון', hint: 'סנכרון בין הטלפון למחשב', onSelect: () => setLogin(true) }
+        : { label: 'יציאה מהחשבון', hint: cloud.email, onSelect: () => signOut().then(() => say('יצאת מהחשבון. הקבלות נשארו במכשיר.')) },
       { label: 'גיבוי לקובץ', hint: 'כל הקבלות והצילומים', onSelect: () => exportBackup().then((n) => say(`הגיבוי נוצר: ${n} קבלות.`)).catch(() => say('הגיבוי לא נוצר. לנסות שוב.')) },
       { label: 'שחזור מגיבוי', hint: 'קובץ JSON', onSelect: () => {
         const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json,.json';
@@ -105,9 +114,10 @@ export default function App() {
       await clearAll(); notify(); say('כל הקבלות נמחקו.');
     } });
     return items;
-  }, [route, current, list]);
+  }, [route, current, list, cloud.status, cloud.email]);
 
-  const status = save === 'saving' ? 'שומר...' : save === 'saved' ? 'נשמר' : save === 'error' ? 'לא נשמר, מנסה שוב' : '';
+  const cloudWord = cloud.status === 'syncing' ? 'מסנכרן...' : cloud.status === 'error' ? (cloud.message ?? 'שגיאת סנכרון') : cloud.status === 'synced' ? 'מסונכרן' : '';
+  const status = save === 'saving' ? 'שומר...' : save === 'saved' ? (cloud.status === 'synced' ? 'נשמר בחשבון' : 'נשמר') : save === 'error' ? 'לא נשמר, מנסה שוב' : cloudWord;
   useEffect(() => { if (save === 'saved') { const t = window.setTimeout(() => setSave('idle'), 2500); return () => window.clearTimeout(t); } }, [save]);
 
   return (
@@ -129,9 +139,10 @@ export default function App() {
       {list == null ? <div className="loading">טוען את הקבלות...</div>
         : route === 'sum' ? <Summary list={list} go={go} />
         : route === 'r' ? (current ? <Editor key={current.id} r={current} go={go} onSave={setSave} /> : <div className="loading">הקבלה לא נמצאה. <a href="#/">לכל הקבלות</a></div>)
-        : <Home list={list} q={q} setQ={setQ} open={open} setOpen={setOpen} go={go} onFiles={onFiles} busy={busy} onMessage={async (t) => { const id = await addMessage(t); go(`#/r/${id}`); }} />}
+        : <Home list={list} q={q} setQ={setQ} open={open} setOpen={setOpen} go={go} onFiles={onFiles} busy={busy} signedIn={cloud.status !== 'out'} syncing={cloud.status === 'syncing'} onLogin={() => setLogin(true)} onMessage={async (t) => { const id = await addMessage(t); go(`#/r/${id}`); }} />}
 
       {route === 'show' && current && <Show r={current} onClose={() => history.length > 1 ? history.back() : go('#/')} />}
+      {login && <Account onClose={() => setLogin(false)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </>
   );

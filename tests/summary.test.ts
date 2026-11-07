@@ -57,3 +57,23 @@ describe('forecast', () => {
     expect(p['2026-12']).toBeCloseTo(74.9 + 98.2);
   });
 });
+
+import { alertsFor } from '../src/alerts';
+describe('alerts', () => {
+  it('warns of a renewal within 7 days and of a price rise in the original currency', () => {
+    const subs = [
+      r('2026-09-23', 'Supabase', 75.42, { currency: 'USD', amountOrig: 25, kind: 'subscription', category: 'פיתוח ותשתיות' }),
+      r('2026-10-23', 'Supabase', 111.44, { currency: 'USD', amountOrig: 35.81, kind: 'subscription', category: 'פיתוח ותשתיות' }),
+      r('2026-09-23', 'Lovable', 75.42, { currency: 'USD', amountOrig: 25, kind: 'subscription' }),
+      r('2026-10-23', 'Lovable', 77.8, { currency: 'USD', amountOrig: 25, kind: 'subscription' }),
+      r('2026-04-09', 'Midjourney', 889, { kind: 'one-time', notes: 'מנוי שנתי, מתחדש ב-09.04.2027' }),
+    ];
+    const a = alertsFor(subs, '2026-11-18');
+    const rise = a.filter((x) => x.kind === 'rise');
+    expect(rise.map((x) => x.storeKey)).toEqual(['Supabase']); // Lovable's shekel change is only the rate
+    expect(rise[0].title).toContain('43%');
+    expect(a.filter((x) => x.kind === 'renew').map((x) => x.storeKey).sort()).toEqual(['Lovable', 'Supabase']);
+    expect(alertsFor(subs, '2027-03-20').some((x) => x.kind === 'annual')).toBe(true);
+    expect(alertsFor(subs, '2026-11-01').some((x) => x.kind === 'renew')).toBe(false);
+  });
+});
