@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"${TMPDIR:-/tmp}/anat-context-map.mjs\"; curl -fsS -o \"$f\" https://raw.githubusercontent.com/Anat1969/Claude-GH/main/tools/context-map.mjs && node \"$f\" code \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null && echo \"CODEMAP.md is ready in the repo root. Read it before opening source files. Report these numbers in the token-saving line at the end of the session.\"; exit 0",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
