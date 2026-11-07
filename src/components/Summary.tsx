@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { catByName } from '../categories';
 import { fmtDate, todayISO } from '../dates';
 import { fmtCur, foreignNote } from '../money';
-import { byKey, byMonth, monthShort, subscriptions, toCSV, ym, type Bucket } from '../summary';
+import { byKey, byMonth, monthShort, projection, subscriptions, toCSV, ym, type Bucket } from '../summary';
 import { CatIcon } from '../ui';
 import type { Receipt } from '../types';
 
@@ -29,7 +29,7 @@ export default function Summary({ list, go }: { list: Receipt[]; go: (h: string)
 
   const [from, to] = useMemo(() => {
     if (period === 'last12') { const d = new Date(); d.setMonth(d.getMonth() - 11); return [`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, ym(today)]; }
-    return [`${period}-01`, period === today.slice(0, 4) ? ym(today) : `${period}-12`];
+    return [`${period}-01`, `${period}-12`];
   }, [period, today]);
 
   const inPeriod = useMemo(() => real.filter((r) => ym(r.date) >= from && ym(r.date) <= to), [real, from, to]);
@@ -45,10 +45,14 @@ export default function Summary({ list, go }: { list: Receipt[]; go: (h: string)
   const monthlySubs = active.reduce((s, x) => s + (x.monthly ?? 0), 0);
   const aiMonthly = active.filter((s) => s.category === 'בינה מלאכותית').reduce((s, x) => s + (x.monthly ?? 0), 0);
   const subsTotal = subsInPeriod.reduce((s, x) => s + x.periodTotal, 0);
-  const max = Math.max(1, ...months.map((m) => m.total));
+  const nowKey = ym(today);
+  const forecast = useMemo(() => projection(subs, nowKey, to, today), [subs, nowKey, to, today]);
+  const forecastTotal = Object.values(forecast).reduce((a, b) => a + b, 0);
+  const max = Math.max(1, ...months.map((m) => m.total + (forecast[m.key] ?? 0)));
   const topicOrder = topics.map((t) => t.key);
   const peak = months.reduce<Bucket | null>((a, b) => (!a || b.total > a.total ? b : a), null);
-  const avg = months.length ? total / months.length : 0;
+  const past = months.filter((m) => m.key <= nowKey);
+  const avg = past.length ? total / past.length : 0;
 
   const picked = useMemo(() => {
     if (!pick) return [];
@@ -69,6 +73,7 @@ export default function Summary({ list, go }: { list: Receipt[]; go: (h: string)
         <p className="explain">
           {active.length ? <><mark>מנויים פעילים: <b className="num">{money(monthlySubs)}</b> בחודש</mark>, כלומר <b className="num">{money(monthlySubs * 12)}</b> בשנה. </> : null}
           {aiMonthly ? <>מזה בינה מלאכותית: <b className="num">{money(aiMonthly)}</b> בחודש. </> : null}
+          {forecastTotal ? <>צפי עד {monthShort(to)}: עוד <b className="num">{money(forecastTotal)}</b> במנויים, ובסך הכול <b className="num">{money(total + forecastTotal)}</b>. </> : null}
           {missing ? <span className="warn-red"><b className="num">{missing}</b> קבלות בלי סכום, ולכן הסכום חסר.</span> : null}
         </p>
         <div className="seg periods" role="group" aria-label="תקופה">
@@ -82,13 +87,14 @@ export default function Summary({ list, go }: { list: Receipt[]; go: (h: string)
           <h2>חודש אחרי חודש</h2>
           <span className="meta">ממוצע <b className="num">{money(avg)}</b> לחודש{peak && peak.total ? <>, השיא ב{monthShort(peak.key)}: <b className="num">{money(peak.total)}</b></> : null}</span>
         </header>
-        <p className="axis-note">גובה העמודה: סך ההוצאה בחודש, בשקלים. כל צבע הוא נושא, לפי המקרא.</p>
+        <p className="axis-note">גובה העמודה: סך ההוצאה בחודש, בשקלים. כל צבע הוא נושא, לפי המקרא. עמודה מקווקוות היא צפי, לפי המנויים הפעילים.</p>
         <div className="mbars" role="list">
           {months.map((m) => (
-            <button key={m.key} role="listitem" className={'mbar press' + (isPicked('month', m.key) ? ' on' : '')} onClick={() => toggle({ kind: 'month', key: m.key })}
+            <button key={m.key} role="listitem" className={'mbar press' + (isPicked('month', m.key) ? ' on' : '') + (m.key > nowKey ? ' future' : '')} onClick={() => toggle({ kind: 'month', key: m.key })}
               onMouseEnter={() => setHover(m.key)} onMouseLeave={() => setHover(null)}
               aria-label={`${monthShort(m.key)} ${m.key.slice(0, 4)}: ${money(m.total)}, ${m.count} קבלות`}>
-              <span className="mbar-val num">{m.total ? money(m.total) : ''}</span>
+              <span className="mbar-val num">{forecast[m.key] ? money(m.total + forecast[m.key]) : m.total ? money(m.total) : ''}</span>
+              {forecast[m.key] ? <span className="mbar-forecast" style={{ height: `calc((100% - 58px) * ${(m.total + forecast[m.key]) / max})` }} title={`צפי: עוד ${money(forecast[m.key])} במנויים`} /> : null}
               <span className="mbar-stack" style={{ height: `${(m.total / max) * 100}%` }}>
                 {topicOrder.filter((t) => m.byTopic[t]).map((t) => (
                   <span key={t} className="seg-t" style={{ flexGrow: m.byTopic[t], background: catByName(t).color }} title={`${t}: ${money(m.byTopic[t])}`} />
@@ -105,6 +111,7 @@ export default function Summary({ list, go }: { list: Receipt[]; go: (h: string)
         <ul className="legend2">
           {topics.map((t) => <li key={t.key}><span className="sw" style={{ background: catByName(t.key).color }} />{t.key}</li>)}
           <li><span className="sw miss">n</span>בלי סכום</li>
+          {forecastTotal ? <li><span className="sw fc" />צפי</li> : null}
         </ul>
       </section>
 

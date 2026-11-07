@@ -60,7 +60,7 @@ export async function prepare(file: Blob): Promise<Prepared> {
 }
 
 /** Draws a text message as a thermal-paper slip, so it can be shown and searched like any receipt. */
-export async function messageImage(text: string, store?: string): Promise<{ display: Blob; thumb: string }> {
+export async function messageImage(text: string, store?: string, origin: 'message' | 'email' = 'message', date?: string): Promise<{ display: Blob; thumb: string }> {
   try { await document.fonts?.ready; } catch { /* optional */ }
   const W = 720, pad = 48, lh = 40;
   const c = document.createElement('canvas');
@@ -78,12 +78,12 @@ export async function messageImage(text: string, store?: string): Promise<{ disp
   }
   const H = 170 + lines.length * lh + 80;
   c.width = W; c.height = H;
-  g.fillStyle = '#fffdf8'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
   g.fillStyle = '#1b1b1b'; g.direction = 'rtl'; g.textAlign = 'center';
   g.font = '600 36px "IBM Plex Sans Hebrew", sans-serif';
-  g.fillText(store || 'קבלה מהודעה', W / 2, 72);
+  g.fillText(store || (origin === 'email' ? 'קבלה מהמייל' : 'קבלה מהודעה'), W / 2, 72);
   g.font = '20px "IBM Plex Mono", "IBM Plex Sans Hebrew", monospace';
-  g.fillStyle = '#6a6a6a'; g.fillText('הודעה שהתקבלה בטלפון', W / 2, 110);
+  g.fillStyle = '#6a6a6a'; g.fillText((origin === 'email' ? 'תקציר המייל' : 'הודעה שהתקבלה בטלפון') + (date ? ` · ${date.split('-').reverse().join('.')}` : ''), W / 2, 110);
   g.fillText('- - - - - - - - - - - - - - - - - - - - - - - -', W / 2, 140);
   g.fillStyle = '#1b1b1b'; g.font = '28px "IBM Plex Sans Hebrew", sans-serif';
   lines.forEach((l, i) => {

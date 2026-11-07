@@ -18,7 +18,7 @@ const fs = require('fs');
     const st = await import('/src/store.ts');
     const db = await import('/src/db.ts');
     for (const it of items) {
-      const id = await st.addMessage(it.text || it.item, it.store);
+      const id = await st.addMessage(it.text || it.item, it.store, 'email', it.date);
       const r = (await db.allReceipts()).find((x) => x.id === id);
       await db.putReceipt({
         ...r, id: 'gm-' + it.sourceId.replace(/^gmail:/, ''), item: it.item, store: it.store, category: it.category, date: it.date,

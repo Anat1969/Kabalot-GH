@@ -102,3 +102,17 @@ export function toCSV(list: Receipt[]) {
   ].map(esc).join(','));
   return '﻿' + [head.join(','), ...rows].join('\n');
 }
+
+/** Forecast for months after today: every active subscription keeps charging its last amount monthly. */
+export function projection(subs: Subscription[], fromKey: string, toKey: string, after = ''): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const s of subs) {
+    if (!s.active || !s.next || s.monthly == null) continue;
+    let d: string | null = s.next;
+    while (d && ym(d) <= toKey) {
+      if (ym(d) >= fromKey && d > after) out[ym(d)] = (out[ym(d)] ?? 0) + s.monthly;
+      d = addMonths(d, 1);
+    }
+  }
+  return out;
+}

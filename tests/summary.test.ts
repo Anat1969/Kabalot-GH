@@ -47,3 +47,13 @@ describe('summaries', () => {
     expect(csv.split('\n').length).toBe(list.length + 1);
   });
 });
+
+import { projection } from '../src/summary';
+describe('forecast', () => {
+  it('projects active subscriptions into the months ahead only', () => {
+    const subs = subscriptions(list, '2026-11-07');
+    const p = projection(subs, '2026-11', '2026-12');
+    expect(Object.keys(p).sort()).toEqual(['2026-11', '2026-12']);
+    expect(p['2026-12']).toBeCloseTo(74.9 + 98.2);
+  });
+});

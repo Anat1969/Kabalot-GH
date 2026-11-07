@@ -22,10 +22,11 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) failed+
     await p.waitForSelector('.insight');
     ok(await p.locator('ai-menu .logo').isVisible(), `${name}: A&I logo button in the top bar`);
     ok(!(await p.locator('header >> text=העתקת קישור').first().isVisible().catch(() => false)), `${name}: no loose development buttons in the bar`);
-    ok(await p.locator('text=הצגת דוגמה').isVisible(), `${name}: empty state explains and offers a demo`);
+    ok(await p.locator('.steps').isVisible(), `${name}: empty state explains the 3 steps`);
+    ok(!(await p.locator('text=הצגת דוגמה').count()), `${name}: no fake sample button`);
     await p.screenshot({ path: `${shots}/${name}-0-empty.png` });
 
-    await p.click('text=הצגת דוגמה');
+    await p.goto(base + (base.includes('?') ? '&' : '?') + 'demo=1');
     await p.waitForSelector('.card');
     ok((await p.locator('.card').count()) === 6, `${name}: 6 demo receipts shown`);
     ok(await p.locator('.group-h').first().isVisible(), `${name}: grouped by item type with headers`);

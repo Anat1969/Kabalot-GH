@@ -71,6 +71,14 @@ export default function App() {
       for (const r of await allReceipts()) if (r.demo) { await deleteReceipt(r.id); if (r.fileId) await deleteFile(r.fileId); }
       notify(); say('הדוגמאות נמחקו.');
     };
+    // Sample receipts are not real: removed on every open. Only the test page (?demo=1) may load them.
+    const demoMode = new URLSearchParams(location.search).has('demo');
+    if (demoMode) { loadDemo().then(notify); }
+    else allReceipts().then(async (all) => {
+      const fake = all.filter((r) => r.demo);
+      for (const r of fake) { await deleteReceipt(r.id); if (r.fileId) await deleteFile(r.fileId); }
+      if (fake.length) { notify(); say(`נמחקו ${fake.length} קבלות לדוגמה. נשארו רק קבלות אמיתיות.`); }
+    }).catch(() => {});
     window.addEventListener('kabalot:reload', reload);
     window.addEventListener('kabalot:clear-demo', clearDemo);
     return () => { window.removeEventListener('kabalot:reload', reload); window.removeEventListener('kabalot:clear-demo', clearDemo); };
@@ -87,7 +95,6 @@ export default function App() {
         inp.click();
       } },
       { label: 'ייצוא לאקסל (CSV)', hint: 'כל הקבלות', onSelect: () => downloadCSV(list ?? [], `קבלות-${new Date().toISOString().slice(0, 10)}.csv`) },
-      { label: 'קבלות לדוגמה', hint: '6 קבלות', onSelect: () => loadDemo().then(() => { notify(); go('#/'); }) },
     ];
     if (route === 'r' && current) items.push({ label: 'מחיקת הקבלה הזו', hint: 'דורש אישור', danger: true, onSelect: async () => {
       if (!confirm(`למחוק את הקבלה של "${current.item || 'החפץ'}"? אי אפשר לבטל.`)) return;

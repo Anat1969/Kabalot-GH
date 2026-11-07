@@ -3,7 +3,6 @@ import { fmtDate, fmtMoney, relDays, returnUntil, statusOf, todayISO, warrantyUn
 import { GROUP_LABEL, SORT_LABEL, STATUS_LABEL, filterStatus, groupOf, matches, sortList, sum, type GroupKey, type SortKey, type StatusFilter } from '../search';
 import { CatIcon, I, Icon, Mark, Mic } from '../ui';
 import { reading } from '../store';
-import { loadDemo } from '../demo';
 import StatusTag from './Status';
 import { curOf, fmtCur } from '../money';
 import Peek from './Peek';
@@ -79,7 +78,6 @@ export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy, 
             <li><b>שם החפץ:</b> סכום, תאריך וחנות נקראים מהקבלה לבד.</li>
             <li><b>בחנות:</b> מחפשים את החפץ, ולוחצים "הצגה למוכרת".</li>
           </ol>
-          <button className="btn press" onClick={() => loadDemo().then(() => window.dispatchEvent(new Event('kabalot:reload')))}>הצגת דוגמה עם 6 קבלות</button>
           <p className="small">הקבלות נשמרות רק בטלפון הזה. גיבוי לקובץ נמצא בכפתור הלוגו.</p>
         </section>
       ) : (
