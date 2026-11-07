@@ -20,7 +20,18 @@ export interface Receipt {
   auto: Partial<Record<'item' | 'store' | 'date' | 'amount', boolean>>;
   /** Link to the digital receipt, when it came in a text message. */
   link?: string;
-  source?: 'photo' | 'message';
+  source?: 'photo' | 'message' | 'email';
+  /** Where it came from, for de-duplication on import (e.g. "gmail:<messageId>"). */
+  sourceId?: string;
+  /** A recurring charge (monthly subscription) or a one-time purchase. */
+  kind?: 'subscription' | 'one-time';
+  /** Currency of the original charge. `amount` is always in shekels. */
+  currency?: 'ILS' | 'USD' | 'EUR';
+  /** The amount in the original currency, when it is not shekels. */
+  amountOrig?: number | null;
+  /** Bank of Israel representative rate used for the conversion, and its date. */
+  rate?: number | null;
+  rateDate?: string;
   demo?: boolean;
   createdAt: number;
   updatedAt: number;

@@ -6,6 +6,7 @@ import { loadDemo } from './demo';
 import Home from './components/Home';
 import Editor from './components/Editor';
 import Show from './components/Show';
+import Summary, { downloadCSV } from './components/Summary';
 import AIMenu, { type MenuItem } from './components/AIMenu';
 import type { SaveState } from './types';
 
@@ -27,7 +28,7 @@ export default function App() {
 
   const say = (t: string) => { setToast(t); window.setTimeout(() => setToast(''), 3500); };
 
-  const [, route, id] = hash.match(/^#\/(r|show)?\/?([\w-]*)/) ?? [];
+  const [, route, id] = hash.match(/^#\/(r|show|sum)?\/?([\w-]*)/) ?? [];
   const current = list?.find((r) => r.id === id);
 
   // Search in the address, so a copied link opens the same view.
@@ -80,9 +81,12 @@ export default function App() {
       { label: 'גיבוי לקובץ', hint: 'כל הקבלות והצילומים', onSelect: () => exportBackup().then((n) => say(`הגיבוי נוצר: ${n} קבלות.`)).catch(() => say('הגיבוי לא נוצר. לנסות שוב.')) },
       { label: 'שחזור מגיבוי', hint: 'קובץ JSON', onSelect: () => {
         const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json,.json';
-        inp.onchange = () => { const f = inp.files?.[0]; if (f) importBackup(f).then((n) => { notify(); say(`שוחזרו ${n} קבלות.`); }).catch(() => say('זה לא קובץ גיבוי של קבלות.')); };
+        inp.onchange = () => { const f = inp.files?.[0]; if (f) { setToast('משחזר קבלות מהקובץ...'); } if (f) importBackup(f).then(({ added, skipped, updated }) => { notify(); say([`נוספו ${added} קבלות.`, updated ? `${updated} קיימות הושלמו.` : '', skipped ? `${skipped} כבר היו, ולא שוכפלו.` : ''].filter(Boolean).join(' ')); }).catch(() => say('זה לא קובץ גיבוי של קבלות.')); };
+        // Keep the picker in the page until a file arrives: a detached input can be garbage-collected and its change event lost.
+        inp.hidden = true; document.body.appendChild(inp); inp.addEventListener('change', () => setTimeout(() => inp.remove(), 0), { once: true });
         inp.click();
       } },
+      { label: 'ייצוא לאקסל (CSV)', hint: 'כל הקבלות', onSelect: () => downloadCSV(list ?? [], `קבלות-${new Date().toISOString().slice(0, 10)}.csv`) },
       { label: 'קבלות לדוגמה', hint: '6 קבלות', onSelect: () => loadDemo().then(() => { notify(); go('#/'); }) },
     ];
     if (route === 'r' && current) items.push({ label: 'מחיקת הקבלה הזו', hint: 'דורש אישור', danger: true, onSelect: async () => {
@@ -94,7 +98,7 @@ export default function App() {
       await clearAll(); notify(); say('כל הקבלות נמחקו.');
     } });
     return items;
-  }, [route, current]);
+  }, [route, current, list]);
 
   const status = save === 'saving' ? 'שומר...' : save === 'saved' ? 'נשמר' : save === 'error' ? 'לא נשמר, מנסה שוב' : '';
   useEffect(() => { if (save === 'saved') { const t = window.setTimeout(() => setSave('idle'), 2500); return () => window.clearTimeout(t); } }, [save]);
@@ -106,12 +110,17 @@ export default function App() {
           <img src={import.meta.env.BASE_URL + 'icon.svg'} alt="" width={28} height={28} />
           <span>קבלות</span>
         </a>
+        <nav className="tabs" aria-label="ניווט">
+          <a href="#/" className={'tab press' + (route !== 'sum' ? ' on' : '')} aria-current={route !== 'sum' ? 'page' : undefined}>קבלות</a>
+          <a href="#/sum" className={'tab press' + (route === 'sum' ? ' on' : '')} aria-current={route === 'sum' ? 'page' : undefined}>סיכום</a>
+        </nav>
         {route === 'r' && <span className="crumb">{current?.item || 'קבלה חדשה'}</span>}
         <span className={'saved ' + save}>{status}</span>
         <AIMenu items={menuItems} status={status} />
       </header>
 
       {list == null ? <div className="loading">טוען את הקבלות...</div>
+        : route === 'sum' ? <Summary list={list} go={go} />
         : route === 'r' ? (current ? <Editor key={current.id} r={current} go={go} onSave={setSave} /> : <div className="loading">הקבלה לא נמצאה. <a href="#/">לכל הקבלות</a></div>)
         : <Home list={list} q={q} setQ={setQ} open={open} setOpen={setOpen} go={go} onFiles={onFiles} busy={busy} onMessage={async (t) => { const id = await addMessage(t); go(`#/r/${id}`); }} />}
 

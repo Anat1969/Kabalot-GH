@@ -6,6 +6,7 @@ import { attachFile, notify, reading } from '../store';
 import { useFile } from '../useFile';
 import { CatIcon, I, Icon, Mic } from '../ui';
 import type { Receipt, SaveState } from '../types';
+import { fetchRate, fmtCur, SYMBOL, toShekels, type Cur } from '../money';
 
 /** One receipt: the image beside the fields. Every change is saved on its own. */
 export default function Editor({ r, go, onSave }: { r: Receipt; go: (h: string) => void; onSave: (s: SaveState) => void }) {
@@ -47,6 +48,19 @@ export default function Editor({ r, go, onSave }: { r: Receipt; go: (h: string) 
 
   const autoMark = (k: keyof Receipt['auto']) => (d.auto[k] ? <span className="auto" title="נקרא מהקבלה. כדאי לוודא.">נקרא מהקבלה</span> : null);
   const num = (v: string) => (v === '' ? null : Number(v.replace(',', '.')));
+  const cur: Cur = d.currency ?? 'ILS';
+  const [rateNote, setRateNote] = useState('');
+
+  /** Foreign charge: keep the original amount, convert with the Bank of Israel rate of the charge date. */
+  const setForeign = async (c: Cur, orig: number | null, date: string) => {
+    if (c === 'ILS') { change({ currency: 'ILS', amount: orig, amountOrig: null, rate: null, rateDate: undefined }); setRateNote(''); return; }
+    change({ currency: c, amountOrig: orig, amount: toShekels(orig, d.currency === c ? d.rate : null) });
+    setRateNote('מביא את השער היציג...');
+    const got = await fetchRate(c, date);
+    if (!got) { setRateNote('השער לא התקבל (אין רשת?). אפשר להקליד שער ידנית.'); return; }
+    change({ currency: c, amountOrig: orig, rate: got.rate, rateDate: got.date, amount: toShekels(orig, got.rate) });
+    setRateNote('');
+  };
 
   return (
     <main className="editor">
@@ -82,14 +96,32 @@ export default function Editor({ r, go, onSave }: { r: Receipt; go: (h: string) 
           ))}
         </div>
 
+        <div className="seg kind" role="group" aria-label="סוג החיוב">
+          <button type="button" className="chip press" aria-pressed={d.kind !== 'subscription'} onClick={() => change({ kind: 'one-time' })}>קנייה</button>
+          <button type="button" className="chip press" aria-pressed={d.kind === 'subscription'} onClick={() => change({ kind: 'subscription', returnDays: null, warrantyMonths: null })}>מנוי חודשי</button>
+        </div>
+
         <div className="grid2">
           <label className="field">
             <span className="lbl">עלות {autoMark('amount')}</span>
-            <span className="inp"><input inputMode="decimal" className="num" value={d.amount ?? ''} onChange={(e) => change({ amount: num(e.target.value) })} placeholder="₪" /></span>
+            <span className="inp">
+              <input inputMode="decimal" className="num" value={(cur === 'ILS' ? d.amount : d.amountOrig) ?? ''} placeholder={SYMBOL[cur]}
+                onChange={(e) => (cur === 'ILS' ? change({ amount: num(e.target.value) }) : change({ amountOrig: num(e.target.value), amount: toShekels(num(e.target.value), d.rate) }))} />
+              <select className="cur" value={cur} onChange={(e) => setForeign(e.target.value as Cur, cur === 'ILS' ? d.amount : d.amountOrig ?? null, d.date)} aria-label="מטבע">
+                <option value="ILS">₪</option><option value="USD">$</option><option value="EUR">€</option>
+              </select>
+            </span>
+            {cur !== 'ILS' && (
+              <span className="hint num">
+                {d.rate ? <>= <b>{fmtCur(d.amount, 'ILS')}</b> · שער יציג <input className="rate" inputMode="decimal" value={d.rate} onChange={(e) => change({ rate: num(e.target.value), amount: toShekels(d.amountOrig, num(e.target.value)) })} aria-label="שער" /> {d.rateDate ? `(${fmtDate(d.rateDate)})` : ''}</>
+                  : <>שער: <input className="rate" inputMode="decimal" placeholder="3.70" onChange={(e) => change({ rate: num(e.target.value), amount: toShekels(d.amountOrig, num(e.target.value)) })} aria-label="שער" /></>}
+                {rateNote && <span className="dim"> {rateNote}</span>}
+              </span>
+            )}
           </label>
           <label className="field">
             <span className="lbl">תאריך {autoMark('date')}</span>
-            <span className="inp"><input type="date" className="num" value={d.date} onChange={(e) => change({ date: e.target.value })} /></span>
+            <span className="inp"><input type="date" className="num" value={d.date} onChange={(e) => { change({ date: e.target.value }); if (cur !== 'ILS') setForeign(cur, d.amountOrig ?? null, e.target.value); }} /></span>
           </label>
           <label className="field wide">
             <span className="lbl">חנות {autoMark('store')}</span>

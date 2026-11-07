@@ -116,6 +116,18 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) failed+
     ok((await p.locator('.ed-form input[inputmode=decimal]').inputValue()) === '389', `${name}: shared message became a receipt`);
     await p.goto(base);
 
+    // summary screen
+    await p.click('.tabs >> text=סיכום');
+    await p.waitForSelector('.mbars');
+    ok((await p.locator('.sum .insight').innerText()).includes('₪'), `${name}: summary shows the total`);
+    ok(await p.locator('text=חודש אחרי חודש').isVisible(), `${name}: monthly chart`);
+    ok((await p.locator('.legend2 li').count()) >= 2, `${name}: chart legend`);
+    await p.click('.hbars .hbar >> nth=0');
+    ok((await p.locator('.picked .row').count()) >= 1, `${name}: tapping a topic opens its receipts in place`);
+    ok(await p.locator('header.bar >> ai-menu').isVisible(), `${name}: top bar intact on the summary`);
+    await p.screenshot({ path: `${shots}/${name}-8-summary.png` });
+    await p.click('.tabs >> text=קבלות');
+
     const sw = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     ok(sw <= 0, `${name}: no horizontal page scroll (${sw})`);
     ok(errors.length === 0, `${name}: no page errors ${errors.join(' | ')}`);

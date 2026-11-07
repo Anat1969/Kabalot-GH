@@ -2,6 +2,7 @@ import { fmtDate, fmtMoney, returnUntil, warrantyUntil } from '../dates';
 import { useFile } from '../useFile';
 import { I, Icon } from '../ui';
 import type { Receipt } from '../types';
+import { curOf, fmtCur, foreignNote } from '../money';
 
 /** The receipt opened in place: the original image, the facts, and the two actions. */
 export default function Peek({ r, go }: { r: Receipt; go: (h: string) => void }) {
@@ -14,7 +15,7 @@ export default function Peek({ r, go }: { r: Receipt; go: (h: string) => void })
       </button>
       <div className="peek-body">
         <dl className="facts">
-          <div><dt>עלות</dt><dd className="num big">{fmtMoney(r.amount) || '—'}</dd></div>
+          <div><dt>עלות</dt><dd className="num big">{fmtMoney(r.amount) || (r.amountOrig != null ? fmtCur(r.amountOrig, curOf(r)) : '—')}{foreignNote(r) && <small className="orig">{foreignNote(r)}</small>}</dd></div>
           <div><dt>תאריך</dt><dd className="num">{fmtDate(r.date, true) || '—'}</dd></div>
           <div><dt>חנות</dt><dd>{r.store || '—'}</dd></div>
           <div><dt>החזרה עד</dt><dd className="num">{fmtDate(ret, true) || '—'}</dd></div>

@@ -5,6 +5,7 @@ import { CatIcon, I, Icon, Mark, Mic } from '../ui';
 import { reading } from '../store';
 import { loadDemo } from '../demo';
 import StatusTag from './Status';
+import { curOf, fmtCur } from '../money';
 import Peek from './Peek';
 import MessageBox from './MessageBox';
 import type { Receipt } from '../types';
@@ -147,7 +148,8 @@ export default function Home({ list, q, setQ, open, setOpen, go, onFiles, busy, 
                             <span className="sub"><Mark text={r.store || 'חנות'} q={q} /> · <span className="num">{fmtDate(r.date)}</span></span>
                           </span>
                           <span className="card-side">
-                            <span className={'amount num' + (r.amount == null ? ' missing' : '')}>{r.amount == null ? 'חסר סכום' : fmtMoney(r.amount)}</span>
+                            <span className={'amount num' + (r.amount == null && r.amountOrig == null ? ' missing' : '')}>{r.amount != null ? fmtMoney(r.amount) : r.amountOrig != null ? fmtCur(r.amountOrig, curOf(r)) : 'חסר סכום'}</span>
+                            {r.amountOrig != null && r.amount != null && <span className="orig num">{fmtCur(r.amountOrig, curOf(r))}</span>}
                             <StatusTag r={r} today={today} />
                           </span>
                         </button>
